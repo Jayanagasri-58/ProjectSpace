@@ -1,0 +1,877 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { 
+  LayoutDashboard, Users, FileText, Megaphone, MessageSquare, 
+  HelpCircle, Bot, Settings, LogOut, Bell, Flag, User,
+  Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, Loader2, Clock,
+  UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp
+} from "lucide-react";
+
+export default function FacultyDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [doubts, setDoubts] = useState<any[]>([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [doubtInput, setDoubtInput] = useState("");
+  const [activeTab, setActiveTab] = useState("Dashboard");
+
+  // Create Announcement State
+  const [newAnnTitle, setNewAnnTitle] = useState("");
+  const [newAnnContent, setNewAnnContent] = useState("");
+  const [newAnnType, setNewAnnType] = useState("Important");
+  const [targetYears, setTargetYears] = useState<string[]>(["All Years"]);
+  const [targetBranches, setTargetBranches] = useState<string[]>(["All Branches"]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const toggleSelection = (state: string[], setState: any, value: string, allValue: string) => {
+    if (value === allValue) {
+      setState([allValue]);
+      return;
+    }
+    let next = state.filter(item => item !== allValue);
+    if (next.includes(value)) {
+      next = next.filter(item => item !== value);
+      if (next.length === 0) next = [allValue];
+    } else {
+      next.push(value);
+    }
+    setState(next);
+  };
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      router.push("/");
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.role !== "Faculty") {
+      router.push("/");
+      return;
+    }
+    setUser(parsedUser);
+    fetchData();
+  }, [router]);
+
+  const fetchData = async () => {
+    const [reqRes, annRes, msgRes, doubtRes] = await Promise.all([
+      fetch('/api/requests'),
+      fetch('/api/announcements'),
+      fetch('/api/messages?type=message'),
+      fetch('/api/messages?type=doubt')
+    ]);
+    if (reqRes.ok) setRequests(await reqRes.json());
+    if (annRes.ok) setAnnouncements(await annRes.json());
+    if (msgRes.ok) setMessages(await msgRes.json());
+    if (doubtRes.ok) setDoubts(await doubtRes.json());
+  };
+
+  const handleSendMessageUniversal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim()) return;
+    
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: messageInput,
+        authorId: user.id,
+        authorName: user.name,
+        authorRole: user.role,
+        type: 'message'
+      })
+    });
+    if (res.ok) {
+      const newMsg = await res.json();
+      setMessages([...messages, newMsg]);
+      setMessageInput("");
+    }
+  };
+
+  const handleAskDoubt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doubtInput.trim()) return;
+    
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: doubtInput,
+        authorId: user.id,
+        authorName: user.name,
+        authorRole: user.role,
+        type: 'doubt',
+        answers: 0,
+        tags: ["General"]
+      })
+    });
+    if (res.ok) {
+      const newDoubt = await res.json();
+      setDoubts([newDoubt, ...doubts]);
+      setDoubtInput("");
+    }
+  };
+
+  const updateRequest = async (id: string, status: string) => {
+    // Optimistic UI update
+    setRequests(reqs => reqs.map(r => r.id === id ? { ...r, status } : r));
+    
+    await fetch(`/api/requests/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+  };
+
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const res = await fetch('/api/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newAnnTitle,
+        content: newAnnContent,
+        type: newAnnType,
+        targetYears,
+        targetBranches,
+        authorId: user.id,
+        authorName: user.name
+      })
+    });
+    if (res.ok) {
+      const newAnn = await res.json();
+      setAnnouncements([newAnn, ...announcements]);
+      setNewAnnTitle("");
+      setNewAnnContent("");
+      setTargetYears(["All Years"]);
+      setTargetBranches(["All Branches"]);
+      setActiveTab("Announcements");
+    }
+    setIsSubmitting(false);
+  };
+
+  if (!user) return null;
+
+  const pendingReq = requests.filter(r => r.status === "Pending").length;
+  const approvedReq = requests.filter(r => r.status === "Approved").length;
+  const rejectedReq = requests.filter(r => r.status === "Rejected").length;
+  const flaggedReq = requests.filter(r => r.status === "Pending" && r.priority === "High");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "Dashboard":
+        return (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+              <StatCard title="My Students" value="128" icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
+              <StatCard title="Total Requests" value={requests.length.toString()} icon={FileText} color="blue" onClick={() => setActiveTab("Permission Requests")} />
+              <StatCard title="Pending" value={pendingReq.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("Permission Requests")} />
+              <StatCard title="Approved" value={approvedReq.toString()} icon={Check} color="green" />
+              <StatCard title="Rejected" value={rejectedReq.toString()} icon={X} color="red" />
+              <StatCard title="AI Flagged" value={flaggedReq.length.toString()} icon={Flag} color="red-solid" onClick={() => setActiveTab("Flagged by AI")} />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2 space-y-6">
+                <div className="glass-panel bg-white p-6 rounded-[2rem] border border-red-100 relative overflow-hidden">
+                  <div className="absolute right-[-10%] top-[-10%] w-64 h-64 bg-red-50 rounded-full blur-3xl"></div>
+                  <div className="relative z-10 flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-[#1E2A5A] flex items-center gap-2">
+                        <Flag className="w-5 h-5 text-red-500" /> AI Flagged Requests
+                      </h3>
+                      <p className="text-sm text-[#6B7280]">Requests that need your immediate attention.</p>
+                    </div>
+                    <button onClick={() => setActiveTab("Flagged by AI")} className="text-sm font-semibold text-[#5B8CFF] hover:underline">View All</button>
+                  </div>
+                  
+                  <div className="overflow-x-auto relative z-10">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Student</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Reason</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280] text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {flaggedReq.slice(0, 3).map((req) => (
+                          <FlaggedTableRow 
+                            key={req.id}
+                            student={req.studentName} event={req.title} reason={req.reason}
+                            priority={req.priority} date={req.submittedOn} 
+                            onAccept={() => updateRequest(req.id, "Approved")}
+                            onReject={() => updateRequest(req.id, "Rejected")}
+                          />
+                        ))}
+                        {flaggedReq.length === 0 && (
+                          <tr><td colSpan={4} className="py-6 text-center text-gray-500">No flagged requests! 🎉</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="glass-panel bg-white rounded-[2rem] p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-[#1E2A5A]">Recent Permission Requests</h3>
+                    <button onClick={() => setActiveTab("Permission Requests")} className="px-3 py-1.5 rounded-lg bg-[#F7F8FF] text-sm font-semibold text-[#1E2A5A] hover:bg-[#EAF4FF] transition-colors border border-gray-200">
+                      View All
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Student</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Status</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280] text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {requests.filter(r => r.priority !== "High" || r.status !== "Pending").slice(0, 4).map(req => (
+                          <StandardTableRow 
+                            key={req.id}
+                            student={req.studentName} event={req.title} date={req.submittedOn} 
+                            priority={req.priority} status={req.status} 
+                            onAccept={() => updateRequest(req.id, "Approved")}
+                            onReject={() => updateRequest(req.id, "Rejected")}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 flex flex-col">
+                <div className="glass-panel bg-white p-6 rounded-[2rem] text-center flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#EDE9FE] rounded-full flex items-center justify-center mb-4">
+                    <Megaphone className="w-7 h-7 text-[#7C6CFF]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#1E2A5A] mb-2">Create Announcement</h3>
+                  <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">
+                    Share important updates, events, or opportunities with your students.
+                  </p>
+                  <button onClick={() => setActiveTab("Create Announcement")} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold shadow-[0_8px_20px_rgba(91,140,255,0.3)] hover:shadow-[0_12px_25px_rgba(91,140,255,0.4)] transform hover:-translate-y-0.5 transition-all">
+                    + New Announcement
+                  </button>
+                </div>
+
+                <div className="glass-panel bg-gradient-to-br from-[#1E2A5A] to-[#2A3B7D] p-6 rounded-[2rem] text-white mt-auto relative overflow-hidden">
+                  <div className="absolute right-[-20%] top-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                  <Bot className="w-8 h-8 text-[#C4B5FD] mb-3 relative z-10" />
+                  <h3 className="text-lg font-bold mb-1 relative z-10">AI Assistant</h3>
+                  <p className="text-sm text-[#C4B5FD] mb-4 relative z-10">Ask AI to summarize requests, suggest priorities, or draft announcements.</p>
+                  <button className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold text-sm transition-colors relative z-10 border border-white/10">
+                    Open AI Assistant
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      
+      case "My Students":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1">My Students</h2>
+            <p className="text-[#6B7280] text-sm mb-8">View and manage the students under your supervision.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { name: "Rohit Sharma", id: "2023CS0192", course: "B.Tech CSE - 3rd Year", reqs: 3 },
+                { name: "Priya Singh", id: "2023CS0104", course: "B.Tech CSE - 3rd Year", reqs: 1 },
+                { name: "Amit Kumar", id: "2023CS0211", course: "B.Tech IT - 3rd Year", reqs: 0 },
+                { name: "Sneha Reddy", id: "2023CS0145", course: "B.Tech CSE - 3rd Year", reqs: 5 }
+              ].map((s, i) => (
+                <div key={i} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-[#EAF4FF] text-[#5B8CFF] flex items-center justify-center font-bold text-xl">
+                    {s.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[#1E2A5A]">{s.name}</h3>
+                    <p className="text-xs text-gray-500">{s.id} • {s.course}</p>
+                    <p className="text-xs font-semibold text-[#5B8CFF] mt-1">{s.reqs} Permission Requests</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "Permission Requests":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1">All Permission Requests</h2>
+            <p className="text-[#6B7280] text-sm mb-8">Manage all student permission requests.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280] rounded-tl-xl">Student</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Date</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Status</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280] text-right rounded-tr-xl">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {requests.map(req => (
+                    <StandardTableRow 
+                      key={req.id}
+                      student={req.studentName} event={req.title} date={req.submittedOn} 
+                      priority={req.priority} status={req.status} 
+                      onAccept={() => updateRequest(req.id, "Approved")}
+                      onReject={() => updateRequest(req.id, "Rejected")}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+
+      case "Flagged by AI":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] border border-red-100 relative overflow-hidden">
+             <div className="absolute right-[-10%] top-[-10%] w-64 h-64 bg-red-50 rounded-full blur-3xl z-0"></div>
+            <div className="relative z-10">
+              <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1 flex items-center gap-2"><Flag className="text-red-500 w-6 h-6"/> AI Flagged Requests</h2>
+              <p className="text-[#6B7280] text-sm mb-8">High priority requests automatically flagged by CampusConnect AI.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-red-50/50">
+                      <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Student</th>
+                      <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
+                      <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Reason</th>
+                      <th className="py-4 px-4 text-sm font-semibold text-[#6B7280] text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {flaggedReq.map((req) => (
+                      <FlaggedTableRow 
+                        key={req.id}
+                        student={req.studentName} event={req.title} reason={req.reason}
+                        priority={req.priority} date={req.submittedOn} 
+                        onAccept={() => updateRequest(req.id, "Approved")}
+                        onReject={() => updateRequest(req.id, "Rejected")}
+                      />
+                    ))}
+                    {flaggedReq.length === 0 && (
+                      <tr><td colSpan={4} className="py-12 text-center text-gray-500">No flagged requests!</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Announcements":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E2A5A]">Previous Announcements</h2>
+                <p className="text-[#6B7280] text-sm mt-1">Review announcements broadcasted to students.</p>
+              </div>
+              <button onClick={() => setActiveTab("Create Announcement")} className="px-4 py-2 rounded-xl bg-[#5B8CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#4A7BEE]">
+                <PlusCircle className="w-4 h-4" /> Create New
+              </button>
+            </div>
+            <div className="space-y-4">
+              {announcements.map((a:any) => (
+                <div key={a.id} className="p-5 border border-gray-100 rounded-2xl hover:border-[#5B8CFF]/30 hover:bg-[#F7F8FF] transition-all flex gap-5">
+                  <div className="w-12 h-12 rounded-full bg-[#EAF4FF] flex items-center justify-center shrink-0 text-[#5B8CFF]">
+                    <Megaphone className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="font-bold text-[#1E2A5A] text-lg">{a.title}</h3>
+                      <span className="px-2 py-0.5 bg-[#EDE9FE] text-[#7C6CFF] text-[10px] font-bold rounded uppercase tracking-wider">
+                        {a.type || "Update"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#6B7280] mb-2">{a.content}</p>
+                    <span className="text-xs font-medium text-gray-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Posted on {a.date}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {announcements.length === 0 && (
+                <div className="py-12 text-center text-gray-500">No announcements created yet.</div>
+              )}
+            </div>
+          </div>
+        );
+
+      case "Create Announcement":
+        const YEARS = ["All Years", "1st Year", "2nd Year", "3rd Year", "4th Year"];
+        const BRANCHES = ["All Branches", "CSE", "IT", "ECE", "EEE", "MECH", "CIVIL"];
+        
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] max-w-3xl mx-auto border-t-4 border-[#5B8CFF]">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1">Create New Announcement</h2>
+            <p className="text-[#6B7280] text-sm mb-8">Broadcast an important message to specific students.</p>
+            
+            <form onSubmit={handleCreateAnnouncement} className="space-y-6">
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Announcement Title</label>
+                <input 
+                  type="text" required value={newAnnTitle} onChange={e => setNewAnnTitle(e.target.value)}
+                  placeholder="e.g., Mid-Term Exam Schedule"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-semibold text-[#1E2A5A] block mb-2">Target Year(s)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {YEARS.map(y => (
+                      <button 
+                        type="button" key={y} 
+                        onClick={() => toggleSelection(targetYears, setTargetYears, y, "All Years")}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+                          targetYears.includes(y) ? 'bg-[#5B8CFF] text-white border-[#5B8CFF]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-[#1E2A5A] block mb-2">Target Branch(es)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {BRANCHES.map(b => (
+                      <button 
+                        type="button" key={b} 
+                        onClick={() => toggleSelection(targetBranches, setTargetBranches, b, "All Branches")}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+                          targetBranches.includes(b) ? 'bg-[#7C6CFF] text-white border-[#7C6CFF]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Category / Type</label>
+                <select 
+                  value={newAnnType} onChange={e => setNewAnnType(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] outline-none"
+                >
+                  <option value="Important">Important</option>
+                  <option value="Exam">Exam</option>
+                  <option value="Event">Event</option>
+                  <option value="Update">General Update</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Detailed Message</label>
+                <textarea 
+                  required value={newAnnContent} onChange={e => setNewAnnContent(e.target.value)}
+                  placeholder="Type your announcement details here..." rows={6}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] outline-none resize-none"
+                ></textarea>
+              </div>
+              <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setActiveTab("Announcements")} className="px-6 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="px-8 py-3 rounded-xl bg-[#5B8CFF] text-white font-bold hover:bg-[#4A7BEE] flex items-center gap-2">
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4"/> Broadcast</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+
+      case "Messages":
+        return (
+          <div className="flex h-[75vh] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100">
+            {/* Sidebar Chat List */}
+            <div className="w-1/3 border-r border-gray-100 flex flex-col">
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="font-bold text-[#1E2A5A] text-lg mb-4">Universal Campus Chat</h3>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                  <input type="text" placeholder="Search messages..." className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#5B8CFF]/50" />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-4">
+                <p className="text-xs text-center text-gray-500">Welcome to the Universal Campus Chat. All students and faculty can see this feed.</p>
+              </div>
+            </div>
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col bg-[#F7F8FF]/50">
+              <div className="p-4 border-b border-gray-100 bg-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">UC</div>
+                <div>
+                  <h4 className="font-bold text-[#1E2A5A]">Universal Chat</h4>
+                  <p className="text-xs text-green-500">Campus-wide broadcast</p>
+                </div>
+              </div>
+              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                {messages.map(msg => {
+                  const isMine = msg.authorId === user.id;
+                  return (
+                    <div key={msg.id} className={`self-${isMine ? 'end' : 'start'} max-w-[70%]`}>
+                      {!isMine && <span className="text-[10px] text-gray-500 font-bold ml-1">{msg.authorName} ({msg.authorRole})</span>}
+                      <div className={`${isMine ? 'bg-[#5B8CFF] text-white rounded-tr-none' : 'bg-white text-[#1E2A5A] rounded-tl-none border border-gray-100'} p-3 rounded-2xl shadow-sm text-sm`}>
+                        {msg.text}
+                      </div>
+                      <span className={`text-xs text-gray-400 mt-1 block ${isMine ? 'text-right mr-1' : 'ml-1'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-4 bg-white border-t border-gray-100">
+                <form onSubmit={handleSendMessageUniversal} className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type a message to the campus..." 
+                    className="flex-1 px-4 py-2 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-[#5B8CFF]/50 text-sm" 
+                  />
+                  <button type="submit" className="p-2.5 bg-[#5B8CFF] text-white rounded-xl hover:bg-[#4A7BEE] transition-colors"><Send className="w-4 h-4" /></button>
+                </form>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Doubts & Q&A":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E2A5A]">Doubts & Q&A Forum</h2>
+                <p className="text-[#6B7280] text-sm mt-1">Answer student queries globally.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAskDoubt} className="mb-8 flex gap-3">
+              <input 
+                type="text" 
+                value={doubtInput}
+                onChange={(e) => setDoubtInput(e.target.value)}
+                placeholder="Share knowledge or ask a question..." 
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" 
+              />
+              <button type="submit" className="px-6 py-3 rounded-xl bg-[#7C6CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#6A5AEE]">
+                <HelpCircle className="w-4 h-4" /> Post
+              </button>
+            </form>
+
+            <div className="space-y-4">
+              {doubts.map((item: any) => (
+                <div key={item.id} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow relative">
+                  <h3 className="font-bold text-[#1E2A5A] text-lg mb-2">{item.text}</h3>
+                  <div className="flex gap-2 mb-4">
+                    {item.tags?.map((t: string) => <span key={t} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md font-bold uppercase">{t}</span>)}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
+                    <span className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"><Heart className="w-4 h-4" /> Like</span>
+                    <span className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"><MessageCircle className="w-4 h-4" /> {item.answers || 0} Answers</span>
+                  </div>
+                  <span className="absolute top-4 right-4 text-xs font-bold text-gray-400">Asked by {item.authorName} ({item.authorRole})</span>
+                </div>
+              ))}
+              {doubts.length === 0 && (
+                <p className="text-center py-8 text-gray-500">No doubts posted yet.</p>
+              )}
+            </div>
+          </div>
+        );
+
+      case "Reports & Analytics":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8 flex items-center gap-2"><BarChart3 /> Reports & Analytics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-6 border border-gray-100 rounded-2xl bg-gray-50 flex flex-col items-center justify-center h-64 text-center">
+                <PieChart className="w-16 h-16 text-[#7C6CFF] mb-4" />
+                <h3 className="font-bold text-[#1E2A5A]">Approval Rate: 85%</h3>
+                <p className="text-sm text-gray-500 mt-2">Most permissions requested are for external hackathons.</p>
+              </div>
+              <div className="p-6 border border-gray-100 rounded-2xl bg-gray-50 flex flex-col items-center justify-center h-64 text-center">
+                <TrendingUp className="w-16 h-16 text-[#5B8CFF] mb-4" />
+                <h3 className="font-bold text-[#1E2A5A]">Activity Spike</h3>
+                <p className="text-sm text-gray-500 mt-2">Permission requests increased by 20% this month.</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Profile":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8">Faculty Profile</h2>
+            <div className="flex flex-col md:flex-row gap-10">
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <img src={user.avatar} alt="Profile" className="w-32 h-32 rounded-full border-4 border-[#EAF4FF] object-cover" />
+                  <button className="absolute bottom-0 right-0 p-2 bg-[#5B8CFF] text-white rounded-full shadow-lg hover:scale-110 transition-transform">
+                    <UploadCloud className="w-4 h-4" />
+                  </button>
+                </div>
+                <h3 className="mt-4 text-xl font-bold text-[#1E2A5A]">{user.name}</h3>
+                <p className="text-sm text-[#6B7280]">{user.role}</p>
+                <span className="mt-2 px-3 py-1 bg-[#EDE9FE] text-[#7C6CFF] text-xs font-bold rounded-lg">{user.details}</span>
+              </div>
+              
+              <div className="flex-1 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-600 block mb-1">Full Name</label>
+                    <input type="text" defaultValue={user.name} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-600 block mb-1">Email Address</label>
+                    <input type="email" defaultValue={user.email} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-600 block mb-1">Department</label>
+                    <input type="text" defaultValue={user.details} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-600 block mb-1">Phone Number</label>
+                    <input type="text" defaultValue="+91 98765 00000" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                  <button className="px-6 py-2.5 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
+                  <button className="px-6 py-2.5 rounded-xl font-semibold text-white bg-[#5B8CFF] hover:bg-[#4A7BEE]">Save Changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Settings":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8">Faculty Settings</h2>
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-bold text-[#1E2A5A] mb-4 flex items-center gap-2"><Bell className="w-5 h-5 text-[#5B8CFF]" /> Notifications</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+                    <div>
+                      <p className="font-semibold text-[#1E2A5A]">Email Alerts for AI Flagged</p>
+                      <p className="text-xs text-gray-500">Get notified instantly when AI flags a request.</p>
+                    </div>
+                    <div className="w-11 h-6 bg-[#5B8CFF] rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 shadow-sm"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F8FF] font-sans flex">
+      {/* LEFT SIDEBAR */}
+      <aside className="w-64 bg-white border-r border-[#EAF4FF] flex flex-col hidden lg:flex sticky top-0 h-screen overflow-y-auto hide-scrollbar">
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#5B8CFF] to-[#7C6CFF] flex items-center justify-center">
+              <span className="text-white font-bold text-sm">CC</span>
+            </div>
+            <span className="text-xl font-bold text-[#1E2A5A]">CampusConnect</span>
+          </div>
+          <span className="text-xs font-semibold text-[#5B8CFF] tracking-wider uppercase ml-10">Faculty Portal</span>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1 mt-4">
+          <NavItem icon={LayoutDashboard} label="Dashboard" active={activeTab === "Dashboard"} onClick={() => setActiveTab("Dashboard")} />
+          <NavItem icon={Users} label="My Students" active={activeTab === "My Students"} onClick={() => setActiveTab("My Students")} />
+          <NavItem icon={FileText} label="Permission Requests" active={activeTab === "Permission Requests"} onClick={() => setActiveTab("Permission Requests")} />
+          <NavItem icon={Flag} label="Flagged by AI" active={activeTab === "Flagged by AI"} onClick={() => setActiveTab("Flagged by AI")} />
+          <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
+          <NavItem icon={PlusCircle} label="Create Announcement" active={activeTab === "Create Announcement"} onClick={() => setActiveTab("Create Announcement")} />
+          <NavItem icon={MessageSquare} label="Messages" active={activeTab === "Messages"} onClick={() => setActiveTab("Messages")} />
+          <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
+          <NavItem icon={BarChart3} label="Reports & Analytics" active={activeTab === "Reports & Analytics"} onClick={() => setActiveTab("Reports & Analytics")} />
+          
+          <div className="pt-6 pb-2">
+            <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
+          </div>
+          <NavItem icon={User} label="Profile" active={activeTab === "Profile"} onClick={() => setActiveTab("Profile")} />
+          <NavItem icon={Settings} label="Settings" active={activeTab === "Settings"} onClick={() => setActiveTab("Settings")} />
+        </nav>
+
+        <div className="p-4 mt-auto">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#EDE9FE] to-[#EAF4FF] border border-white shadow-sm relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/40 rounded-full blur-xl"></div>
+            <h4 className="text-sm font-bold text-[#1E2A5A] mb-1 relative z-10">Make an Impact!</h4>
+            <p className="text-xs text-[#6B7280] mb-3 relative z-10">Share important updates with your students.</p>
+            <button onClick={() => setActiveTab("Create Announcement")} className="w-full py-2 rounded-xl bg-white text-[#5B8CFF] text-xs font-bold shadow-sm hover:shadow relative z-10 transition-shadow">
+              Create Announcement
+            </button>
+          </div>
+          <button 
+            onClick={() => { localStorage.removeItem("user"); router.push("/"); }}
+            className="flex items-center gap-3 w-full px-4 py-3 mt-4 text-[#EF4444] hover:bg-red-50 rounded-xl transition-colors font-medium text-sm"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* TOP HEADER */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-[#EAF4FF] flex items-center justify-between px-8 sticky top-0 z-30">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1E2A5A]">
+              {activeTab === "Dashboard" ? `Welcome back, ${user.name} 👋` : activeTab}
+            </h1>
+            <p className="text-sm text-[#6B7280]">
+              {activeTab === "Dashboard" ? "Here's an overview of your students and permission requests." : "Faculty Portal Workspace"}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <button onClick={() => setActiveTab("Flagged by AI")} className="relative p-2 rounded-full bg-[#F7F8FF] text-[#1E2A5A] hover:bg-[#EAF4FF] transition-colors">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full border-2 border-white"></span>
+            </button>
+            <div className="flex items-center gap-3 pl-6 border-l border-gray-100 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setActiveTab("Profile")}>
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold text-[#1E2A5A]">{user.name}</p>
+                <p className="text-xs text-[#6B7280]">{user.details}</p>
+              </div>
+              <img src={user.avatar} alt="Profile" className="w-10 h-10 rounded-full border-2 border-[#EAF4FF] object-cover" />
+            </div>
+          </div>
+        </header>
+
+        {/* DYNAMIC CONTENT AREA */}
+        <div className="flex-1 p-8 overflow-y-auto">
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Subcomponents
+
+function NavItem({ icon: Icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) {
+  return (
+    <a href="#" onClick={(e) => { e.preventDefault(); if(onClick) onClick(); }} className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+      active 
+        ? "bg-[#EDE9FE] text-[#7C6CFF] font-semibold" 
+        : "text-[#6B7280] hover:bg-gray-50 hover:text-[#1E2A5A] font-medium"
+    }`}>
+      <div className="flex items-center gap-3">
+        <Icon className={`w-5 h-5 ${active ? "text-[#7C6CFF]" : "text-gray-400"}`} />
+        <span className="text-sm">{label}</span>
+      </div>
+      {active && <ChevronRight className="w-4 h-4 text-[#7C6CFF]" />}
+    </a>
+  );
+}
+
+function StatCard({ title, value, icon: Icon, color, onClick }: { title: string, value: string, icon: any, color: 'purple' | 'orange' | 'green' | 'red' | 'blue' | 'red-solid', onClick?: () => void }) {
+  const colors = {
+    purple: "bg-[#EDE9FE] text-[#7C6CFF]",
+    orange: "bg-orange-100 text-orange-500",
+    green: "bg-green-100 text-green-500",
+    red: "bg-red-100 text-red-500",
+    blue: "bg-[#EAF4FF] text-[#5B8CFF]",
+    "red-solid": "bg-red-50 text-red-600 border border-red-200"
+  };
+  
+  return (
+    <div onClick={onClick} className={`glass-panel bg-white p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow ${color === 'red-solid' ? 'bg-red-50/50 border border-red-100' : ''}`}>
+      <div className={`w-12 h-12 rounded-xl flex shrink-0 items-center justify-center ${colors[color]}`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div>
+        <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${color === 'red-solid' ? 'text-red-500' : 'text-[#6B7280]'}`}>{title}</p>
+        <p className="text-2xl font-bold text-[#1E2A5A]">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlaggedTableRow({ student, event, reason, priority, date, onAccept, onReject }: any) {
+  return (
+    <tr className="border-b border-gray-50 hover:bg-red-50/30 transition-colors group">
+      <td className="py-4 px-4 font-semibold text-[#1E2A5A]">{student}</td>
+      <td className="py-4 px-4 text-[#1E2A5A]">{event}</td>
+      <td className="py-4 px-4 text-red-500 font-medium text-xs max-w-[200px] truncate">{reason}</td>
+      <td className="py-4 px-4 text-right">
+        <div className="flex items-center justify-end gap-2">
+          <button onClick={onAccept} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-100">
+            <Check className="w-4 h-4" />
+          </button>
+          <button onClick={onReject} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function StandardTableRow({ student, event, date, priority, status, onAccept, onReject }: any) {
+  const getStatusColor = (s: string) => {
+    if (s === "Approved") return "bg-green-100 text-green-700";
+    if (s === "Pending") return "bg-orange-100 text-orange-700";
+    return "bg-red-100 text-red-700";
+  };
+
+  return (
+    <tr className="border-b border-gray-50 hover:bg-[#F7F8FF] transition-colors group">
+      <td className="py-4 px-4 font-semibold text-[#1E2A5A]">{student}</td>
+      <td className="py-4 px-4 text-[#1E2A5A]">{event}</td>
+      <td className="py-4 px-4 text-[#6B7280]">{date}</td>
+      <td className="py-4 px-4">
+        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${getStatusColor(status)}`}>
+          {status}
+        </span>
+      </td>
+      <td className="py-4 px-4 text-right">
+        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {status === "Pending" && (
+            <>
+              <button onClick={onAccept} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-100">
+                <Check className="w-4 h-4" />
+              </button>
+              <button onClick={onReject} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
+                <X className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
