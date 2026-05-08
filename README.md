@@ -6,7 +6,7 @@ Welcome to the **CampusConnect** repository!
 > All of the main application code (frontend, backend, and API routes) is located inside the `campus-connect` directory.
 
 ## Live Demo
-🌍 **[Insert your Live Project Link Here]** *(See deployment instructions below on how to generate this link)*
+🌍 **[https://project-space-vert.vercel.app/](https://project-space-vert.vercel.app/)**
 
 ## About The Project
 CampusConnect is a modern, full-stack Next.js web application designed to bridge the communication gap between Students, Faculty, and Administrators. 
