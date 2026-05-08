@@ -5,6 +5,9 @@ Welcome to the **CampusConnect** repository!
 > **📍 Important Note for Reviewers:**
 > All of the main application code (frontend, backend, and API routes) is located inside the `campus-connect` directory.
 
+## Live Demo
+🌍 **[Insert your Live Project Link Here]** *(See deployment instructions below on how to generate this link)*
+
 ## About The Project
 CampusConnect is a modern, full-stack Next.js web application designed to bridge the communication gap between Students, Faculty, and Administrators. 
 
@@ -30,3 +33,15 @@ CampusConnect is a modern, full-stack Next.js web application designed to bridge
    npm run dev
    ```
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 🚀 How to Deploy (Live Link)
+To create a live link that updates automatically every time you push to GitHub, deploying to **Vercel** is highly recommended:
+
+1. Create a free account on [Vercel](https://vercel.com/signup).
+2. Click **Add New...** -> **Project**.
+3. Import your GitHub repository (`Jayanagasri-58/ProjectSpace`).
+4. In the configuration settings, **CRITICAL**: Make sure to set the **Root Directory** to `campus-connect`.
+5. Click **Deploy**. Vercel will build your project and give you a live URL (e.g., `https://campus-connect-demo.vercel.app`).
+6. Every time you push new code to your GitHub `main` branch, Vercel will automatically redeploy and update your live link!
+
+*Once you get your Vercel URL, replace the `[Insert your Live Project Link Here]` placeholder at the top of this README with your real link.*
