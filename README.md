@@ -18,6 +18,16 @@ CampusConnect is a modern, full-stack Next.js web application designed to bridge
 - **AI Integration:** A built-in AI assistant to help students draft letters, answer academic questions, and automatically flag high-priority requests for admins.
 - **Admin Moderation:** Powerful analytics, system controls, and content moderation tools.
 
+## 👥 Team Members
+| Avatar | Name | GitHub Profile |
+| :---: | :--- | :--- |
+| <img src="https://github.com/keerthimeghana-2319.png" width="40" style="border-radius:50%"> | Chitikila Keerthi Meghana | [@keerthimeghana-2319](https://github.com/keerthimeghana-2319) |
+| <img src="https://github.com/Jayanagasri-58.png" width="40" style="border-radius:50%"> | Narina Jayanagasri | [@Jayanagasri-58](https://github.com/Jayanagasri-58) |
+| <img src="https://github.com/leela9147.png" width="40" style="border-radius:50%"> | Suravarapu Leela Pavani | [@leela9147](https://github.com/leela9147) |
+| <img src="https://github.com/Pranathi811.png" width="40" style="border-radius:50%"> | Pulagam Pranathi | [@Pranathi811](https://github.com/Pranathi811) |
+| <img src="https://github.com/Satyasri2006.png" width="40" style="border-radius:50%"> | Chikkaraju Naga Ratna Satyasri | [@Satyasri2006](https://github.com/Satyasri2006) |
+| <img src="https://github.com/Varshini2862007.png" width="40" style="border-radius:50%"> | Pothu Kanaka Varshini | [@Varshini2862007](https://github.com/Varshini2862007) |
+
 ## How to Run Locally
 
 1. Navigate into the application directory:
