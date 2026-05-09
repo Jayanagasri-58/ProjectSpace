@@ -3,13 +3,31 @@ import path from 'path';
 
 const dataFilePath = path.join(process.cwd(), 'src', 'lib', 'data.json');
 
+// Use globalThis to persist data in memory across requests in the same instance (useful for Vercel/Serverless)
+let cachedData: any = null;
+
 function readData() {
-  const fileData = fs.readFileSync(dataFilePath, 'utf-8');
-  return JSON.parse(fileData);
+  if (cachedData) return cachedData;
+  try {
+    const fileData = fs.readFileSync(dataFilePath, 'utf-8');
+    cachedData = JSON.parse(fileData);
+    return cachedData;
+  } catch (err) {
+    // Fallback for missing file or read errors
+    cachedData = { users: [], requests: [], announcements: [], messages: [], facultyRequests: [] };
+    return cachedData;
+  }
 }
 
 function writeData(data: any) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
+  cachedData = data;
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    // Silently ignore write errors on read-only filesystems (like Vercel)
+    // The data is still updated in the cachedData variable for the current instance session
+    console.warn("Filesystem is read-only. Data will only persist in memory for this instance.");
+  }
 }
 
 export function getUsers() {
