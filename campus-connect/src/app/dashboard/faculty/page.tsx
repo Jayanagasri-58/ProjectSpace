@@ -89,6 +89,7 @@ export default function FacultyDashboard() {
     return () => clearInterval(interval);
   }, [router]);
 
+  const fetchData = async (facultyId: string) => {
     const [reqRes, annRes, msgRes, doubtRes, facReqRes] = await Promise.all([
       fetch(`/api/requests?facultyId=${facultyId}`),
       fetch('/api/announcements'),
