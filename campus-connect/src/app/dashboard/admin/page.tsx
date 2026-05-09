@@ -100,7 +100,12 @@ export default function AdminDashboard() {
   if (!user) return null;
 
   const studentRequests = requests;
-  const flaggedReq = requests.filter(r => r.status === "Pending" && r.priority === "High");
+  const allPending = [
+    ...requests.filter(r => r.status === "Pending"),
+    ...facultyRequests.filter(r => r.status === "Pending")
+  ].sort((a, b) => (b.priority === 'High' ? 1 : -1) - (a.priority === 'High' ? 1 : -1));
+
+  const flaggedReq = allPending.filter(r => r.priority === "High");
 
   const renderContent = () => {
     switch (activeTab) {
@@ -110,7 +115,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               <StatCard title="Total Students" value={usersList.filter(u => u.role === "Student").length.toString()} icon={Users} color="purple" onClick={() => setActiveTab("Manage Users")} />
               <StatCard title="Total Faculty" value={usersList.filter(u => u.role === "Faculty").length.toString()} icon={UserCog} color="blue" onClick={() => setActiveTab("Manage Users")} />
-              <StatCard title="Global Pending" value={requests.filter(r => r.status === 'Pending').length.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("All Requests")} />
+              <StatCard title="Global Pending" value={(requests.filter(r => r.status === 'Pending').length + facultyRequests.filter(r => r.status === 'Pending').length).toString()} icon={Clock} color="orange" onClick={() => setActiveTab("All Requests")} />
               <StatCard title="Approved Today" value="15" icon={Check} color="green" />
               <StatCard title="Rejected Today" value="3" icon={X} color="red" />
               <StatCard title="AI Escalated" value={flaggedReq.length.toString()} icon={ShieldAlert} color="red-solid" onClick={() => setActiveTab("Flagged by AI")} />
@@ -135,18 +140,17 @@ export default function AdminDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-gray-100">
-                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Person / Department</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Person / Role</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280]">Reason</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280] text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        {/* Show prioritized pending requests */}
-                        {[...flaggedReq, ...requests.filter(r => r.status === "Pending" && r.priority !== "High")].slice(0, 5).map((req) => (
+                        {allPending.slice(0, 6).map((req) => (
                           <FlaggedTableRow 
                             key={req.id}
-                            dept={req.studentName || req.name} 
+                            dept={`${req.studentName || req.name} (${req.studentId ? 'Student' : 'Faculty'})`} 
                             event={req.title || req.type} 
                             reason={req.reason || "General Request"}
                             priority={req.priority} date={req.submittedOn || req.date} 
@@ -155,8 +159,8 @@ export default function AdminDashboard() {
                             onReject={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Rejected"); }}
                           />
                         ))}
-                        {requests.filter(r => r.status === "Pending").length === 0 && (
-                          <tr><td colSpan={4} className="py-12 text-center text-gray-400 font-medium">All caught up! No pending requests.</td></tr>
+                        {allPending.length === 0 && (
+                          <tr><td colSpan={4} className="py-12 text-center text-gray-400 font-medium">No pending requests to review.</td></tr>
                         )}
                       </tbody>
                     </table>

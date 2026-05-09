@@ -22,6 +22,7 @@ export default function FacultyDashboard() {
   const [messageInput, setMessageInput] = useState("");
   const [doubtInput, setDoubtInput] = useState("");
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [myAdminRequests, setMyAdminRequests] = useState<any[]>([]);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -84,17 +85,22 @@ export default function FacultyDashboard() {
     fetchData(parsedUser.id);
   }, [router]);
 
-  const fetchData = async (facultyId: string) => {
-    const [reqRes, annRes, msgRes, doubtRes] = await Promise.all([
+    const [reqRes, annRes, msgRes, doubtRes, facReqRes] = await Promise.all([
       fetch(`/api/requests?facultyId=${facultyId}`),
       fetch('/api/announcements'),
       fetch('/api/messages?type=message'),
-      fetch('/api/messages?type=doubt')
+      fetch('/api/messages?type=doubt'),
+      fetch('/api/facultyRequests')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
     if (doubtRes.ok) setDoubts(await doubtRes.json());
+    if (facReqRes.ok) {
+      const allFacReq = await facReqRes.json();
+      // Filter to only show requests from THIS faculty
+      setMyAdminRequests(allFacReq.filter((r: any) => r.name === user?.name || r.facultyId === facultyId));
+    }
   };
 
   const handleCreateFacultyRequest = async (e: React.FormEvent) => {
@@ -623,6 +629,57 @@ export default function FacultyDashboard() {
           </div>
         );
 
+      case "My Admin Requests":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E2A5A]">My Admin Requests</h2>
+                <p className="text-[#6B7280] text-sm mt-1">Track the status of requests you've sent to the Admin.</p>
+              </div>
+              <button onClick={() => setIsReqModalOpen(true)} className="px-4 py-2 rounded-xl bg-[#5B8CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#4A7BEE]">
+                <PlusCircle className="w-4 h-4" /> New Request
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280] rounded-tl-xl">Request Type</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Reason</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Date</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280]">Status</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-[#6B7280] rounded-tr-xl">Priority</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {myAdminRequests.map(r => (
+                    <tr key={r.id} className="border-b border-gray-50 hover:bg-[#F7F8FF] transition-colors">
+                      <td className="py-4 px-4 font-semibold text-[#1E2A5A]">{r.type}</td>
+                      <td className="py-4 px-4 text-[#6B7280] max-w-xs truncate">{r.reason}</td>
+                      <td className="py-4 px-4 text-[#6B7280]">{r.date}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                          r.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                          r.status === 'Pending' ? 'bg-orange-100 text-orange-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 font-medium text-gray-500">{r.priority}</td>
+                    </tr>
+                  ))}
+                  {myAdminRequests.length === 0 && (
+                    <tr><td colSpan={5} className="py-12 text-center text-gray-500">No requests submitted to Admin yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+
       case "Reports & Analytics":
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
@@ -809,6 +866,7 @@ export default function FacultyDashboard() {
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
           <NavItem icon={PlusCircle} label="Create Announcement" active={activeTab === "Create Announcement"} onClick={() => setActiveTab("Create Announcement")} />
           <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
+          <NavItem icon={UserCog} label="My Admin Requests" active={activeTab === "My Admin Requests"} onClick={() => setActiveTab("My Admin Requests")} />
           <NavItem icon={BarChart3} label="Reports & Analytics" active={activeTab === "Reports & Analytics"} onClick={() => setActiveTab("Reports & Analytics")} />
           
           <div className="pt-6 pb-2">
