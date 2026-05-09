@@ -187,29 +187,40 @@ export default function StudentDashboard() {
       return;
     }
     setIsSubmitting(true);
-    const res = await fetch('/api/requests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        studentId: user.id,
-        studentName: user.name,
-        title: newReqTitle,
-        reason: newReqReason,
-        targetFaculty: selectedFaculty,
-        // File upload mock - in a real app this would use FormData
-        hasAttachment: !!newReqFile
-      })
-    });
-    if (res.ok) {
-      const newReq = await res.json();
-      setRequests([newReq, ...requests]);
-      setIsModalOpen(false);
-      setNewReqTitle("");
-      setNewReqReason("");
-      setNewReqFile(null);
-      setSelectedFaculty([]);
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: user.id,
+          studentName: user.name,
+          title: newReqTitle,
+          reason: newReqReason,
+          targetFaculty: selectedFaculty,
+          hasAttachment: !!newReqFile,
+          status: 'Pending',
+          submittedOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        })
+      });
+      
+      if (res.ok) {
+        const newReq = await res.json();
+        setRequests(prev => [newReq, ...prev]);
+        setIsModalOpen(false);
+        setNewReqTitle("");
+        setNewReqReason("");
+        setNewReqFile(null);
+        setSelectedFaculty([]);
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.message || "Failed to submit request"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while submitting. Please check your connection.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   if (!user) return null;
@@ -585,36 +596,63 @@ export default function StudentDashboard() {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
-              {doubts.map((msg: any) => (
-                <div key={msg.id} className={`flex ${msg.authorId === user.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-4 rounded-2xl ${msg.authorId === user.id ? 'bg-[#5B8CFF] text-white rounded-tr-none shadow-md' : 'bg-white border border-gray-100 text-[#1E2A5A] rounded-tl-none shadow-sm'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold uppercase ${msg.authorId === user.id ? 'opacity-80' : 'text-[#5B8CFF]'}`}>{msg.authorName} • {msg.authorRole}</span>
+              {doubts.map((item: any) => (
+                <div key={item.id} className="p-6 border border-gray-100 rounded-3xl hover:shadow-lg hover:border-[#5B8CFF]/30 transition-all bg-white relative group">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#F7F8FF] flex items-center justify-center text-[#5B8CFF] font-bold border border-[#EAF4FF]">
+                        {item.authorName?.[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#1E2A5A]">{item.authorName}</p>
+                        <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{item.authorRole} • {new Date(item.timestamp || Date.now()).toLocaleDateString()}</p>
+                      </div>
                     </div>
-                    <p className="text-sm leading-relaxed">{msg.text}</p>
-                    <p className="text-[9px] mt-2 opacity-50 text-right">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    <div className="flex gap-2">
+                      {item.tags?.map((t: string) => (
+                        <span key={t} className="px-2 py-1 bg-[#EAF4FF] text-[#5B8CFF] text-[9px] font-black rounded-lg uppercase tracking-tighter">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <h3 className="font-bold text-[#1E2A5A] text-lg mb-3 leading-tight">{item.text}</h3>
+                  
+                  <div className="flex items-center gap-6 pt-4 border-t border-gray-50">
+                    <button className="flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors group/btn">
+                      <div className="p-2 rounded-full group-hover/btn:bg-red-50 transition-colors">
+                        <Heart className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold">Like</span>
+                    </button>
+                    <button className="flex items-center gap-2 text-gray-400 hover:text-[#5B8CFF] transition-colors group/btn">
+                      <div className="p-2 rounded-full group-hover/btn:bg-blue-50 transition-colors">
+                        <MessageCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold">{item.answers || 0} Answers</span>
+                    </button>
                   </div>
                 </div>
               ))}
               {doubts.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-3">
-                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
-                    <MessageSquare className="w-8 h-8 opacity-20" />
-                  </div>
-                  <p className="font-medium">No questions asked yet.</p>
-                  <p className="text-xs">Be the first to ask an academic doubt!</p>
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 py-12">
+                  <HelpCircle className="w-16 h-16 opacity-10 mb-4" />
+                  <p className="font-bold">No academic doubts yet.</p>
+                  <p className="text-sm">Be the first to ask a question!</p>
                 </div>
               )}
             </div>
 
-            <form onSubmit={handleSendMessageUniversal} className="relative">
+            <form onSubmit={handleSendMessageUniversal} className="relative mt-auto">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Lightbulb className="w-5 h-5 text-[#5B8CFF] opacity-50" />
+              </div>
               <input 
                 type="text" value={messageInput} onChange={e => setMessageInput(e.target.value)}
-                placeholder="Type your academic doubt or message..."
-                className="w-full pl-6 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-[#5B8CFF] focus:bg-white outline-none transition-all"
+                placeholder="Ask a doubt or share knowledge..."
+                className="w-full pl-12 pr-28 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#5B8CFF] focus:bg-white outline-none transition-all shadow-inner"
               />
-              <button type="submit" className="absolute right-2 top-2 bottom-2 px-4 bg-[#5B8CFF] text-white rounded-xl hover:bg-[#4A7BEE] transition-colors">
-                <Send className="w-5 h-5" />
+              <button type="submit" className="absolute right-2 top-2 bottom-2 px-6 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white rounded-xl font-bold shadow-md hover:shadow-lg hover:opacity-90 transition-all">
+                Ask Now
               </button>
             </form>
           </div>
@@ -624,31 +662,31 @@ export default function StudentDashboard() {
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] flex flex-col">
              <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-gradient-to-tr from-orange-400 to-red-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-tr from-[#5B8CFF] to-[#7C6CFF] rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Bot className="w-7 h-7" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-[#1E2A5A]">AI Campus Assistant</h2>
-                <p className="text-xs text-gray-500 flex items-center gap-1"><Sparkles className="w-3 h-3 text-orange-400" /> Powered by Gemini AI</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1"><Sparkles className="w-3 h-3 text-[#7C6CFF]" /> Specialized for CampusConnect</p>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
                {chatHistory.length === 0 && (
                  <div className="h-full flex flex-col items-center justify-center text-center p-10">
-                   <div className="w-20 h-20 bg-orange-50 rounded-[2rem] flex items-center justify-center text-orange-500 mb-6 animate-pulse">
+                   <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-[#5B8CFF] mb-6 animate-pulse">
                      <Bot className="w-10 h-10" />
                    </div>
                    <h3 className="text-xl font-bold text-[#1E2A5A]">Hello! I'm your AI Tutor</h3>
                    <p className="text-sm text-gray-500 max-w-sm mt-2">I can help you with permission letters, academic concepts, or campus policies. Try asking me something!</p>
                    
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-10 w-full max-w-md">
-                     <button onClick={() => setAiMessage("Help me write a professional leave letter.")} className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-orange-300 hover:bg-orange-50/30 transition-all group">
-                       <p className="text-[10px] font-bold text-orange-500 mb-1">DRAFTING</p>
+                     <button onClick={() => setAiMessage("Help me write a professional leave letter.")} className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-[#5B8CFF]/50 hover:bg-blue-50/30 transition-all group">
+                       <p className="text-[10px] font-bold text-[#5B8CFF] mb-1">DRAFTING</p>
                        <p className="text-xs text-[#1E2A5A] font-semibold">Write a leave letter</p>
                      </button>
-                     <button onClick={() => setAiMessage("Explain what is Big O notation simply.")} className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-orange-300 hover:bg-orange-50/30 transition-all group">
-                       <p className="text-[10px] font-bold text-orange-500 mb-1">ACADEMICS</p>
+                     <button onClick={() => setAiMessage("Explain what is Big O notation simply.")} className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-[#5B8CFF]/50 hover:bg-blue-50/30 transition-all group">
+                       <p className="text-[10px] font-bold text-[#5B8CFF] mb-1">ACADEMICS</p>
                        <p className="text-xs text-[#1E2A5A] font-semibold">Explain Big O Notation</p>
                      </button>
                    </div>
@@ -659,10 +697,10 @@ export default function StudentDashboard() {
                    <div className={`max-w-[85%] p-4 rounded-2xl ${
                      chat.role === 'user' 
                        ? 'bg-[#1E2A5A] text-white rounded-tr-none' 
-                       : 'bg-white border border-orange-100 text-[#1E2A5A] rounded-tl-none shadow-sm'
+                       : 'bg-white border border-blue-100 text-[#1E2A5A] rounded-tl-none shadow-sm'
                    }`}>
                      <div className="flex items-center gap-2 mb-1">
-                       {chat.role === 'assistant' && <Bot className="w-3 h-3 text-orange-500" />}
+                       {chat.role === 'assistant' && <Bot className="w-3 h-3 text-[#5B8CFF]" />}
                        <span className="text-[10px] font-bold uppercase opacity-60">{chat.role === 'user' ? 'You' : 'Campus AI'}</span>
                      </div>
                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{chat.content}</p>
@@ -672,7 +710,7 @@ export default function StudentDashboard() {
                {isAiLoading && (
                  <div className="flex justify-start">
                    <div className="bg-white border border-gray-100 p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
-                     <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                     <Loader2 className="w-4 h-4 animate-spin text-[#5B8CFF]" />
                      <span className="text-xs font-medium text-gray-500">AI is thinking...</span>
                    </div>
                  </div>
@@ -683,9 +721,9 @@ export default function StudentDashboard() {
               <input 
                 type="text" value={aiMessage} onChange={e => setAiMessage(e.target.value)}
                 placeholder="Ask your AI assistant anything..."
-                className="w-full pl-6 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-orange-400 focus:bg-white outline-none transition-all"
+                className="w-full pl-6 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-[#5B8CFF] focus:bg-white outline-none transition-all"
               />
-              <button type="submit" disabled={isAiLoading} className="absolute right-2 top-2 bottom-2 px-4 bg-gradient-to-tr from-orange-500 to-red-500 text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center">
+              <button type="submit" disabled={isAiLoading} className="absolute right-2 top-2 bottom-2 px-4 bg-gradient-to-tr from-[#5B8CFF] to-[#7C6CFF] text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center shadow-md">
                 {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
             </form>
