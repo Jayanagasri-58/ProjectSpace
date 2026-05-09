@@ -62,6 +62,20 @@
   ],
   "announcements": [
     {
+      "id": "an_1778318321613",
+      "title": "kkk",
+      "content": "kkk",
+      "type": "Global",
+      "authorName": "System Admin",
+      "targetYears": [
+        "All Years"
+      ],
+      "targetBranches": [
+        "All Branches"
+      ],
+      "date": "May 9, 2026"
+    },
+    {
       "id": "an1",
       "title": "CodeFest 2024 Registration Open",
       "type": "Event",

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Megaphone, MessageSquare, 
   HelpCircle, Bot, Settings, LogOut, Bell, Flag,
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, UserCog, Clock, Search, ShieldAlert,
-  UploadCloud, Send, Heart, PieChart, TrendingUp, Activity
+  UploadCloud, Send, Heart, PieChart, TrendingUp, Activity, MessageCircle
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -16,6 +16,9 @@ export default function AdminDashboard() {
   const [requests, setRequests] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [facultyRequests, setFacultyRequests] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [doubts, setDoubts] = useState<any[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -33,14 +36,30 @@ export default function AdminDashboard() {
   }, [router]);
 
   const fetchData = async () => {
-    const [reqRes, facReqRes, userRes] = await Promise.all([
+    const [reqRes, facReqRes, userRes, annRes, doubtRes] = await Promise.all([
       fetch('/api/requests'),
       fetch('/api/facultyRequests'),
-      fetch('/api/users')
+      fetch('/api/users'),
+      fetch('/api/announcements'),
+      fetch('/api/messages?type=doubt')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (facReqRes.ok) setFacultyRequests(await facReqRes.json());
     if (userRes.ok) setUsersList(await userRes.json());
+    if (annRes.ok) setAnnouncements(await annRes.json());
+    if (doubtRes.ok) {
+      const data = await doubtRes.json();
+      if (data.length === 0) {
+        // Seed example data
+        setDoubts([
+          { id: 'd1', text: "What is the procedure for semester registration?", authorName: "Rohit Sharma", answers: 2, tags: ["Academic"] },
+          { id: 'd2', text: "Is the central library open on Sundays?", authorName: "Sneha Reddy", answers: 5, tags: ["Campus"] },
+          { id: 'd3', text: "Are there any updates on the Tech Fest dates?", authorName: "Amit Kumar", answers: 0, tags: ["Events"] }
+        ]);
+      } else {
+        setDoubts(data);
+      }
+    }
   };
 
   const updateRequest = async (id: string, status: string) => {
@@ -102,8 +121,9 @@ export default function AdminDashboard() {
                             key={req.id}
                             dept={req.studentName} event={req.title} reason={req.reason}
                             priority={req.priority} date={req.submittedOn} 
-                            onAccept={() => updateRequest(req.id, "Approved")}
-                            onReject={() => updateRequest(req.id, "Rejected")}
+                            onClick={() => setSelectedRequest(req)}
+                            onAccept={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Approved"); }}
+                            onReject={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Rejected"); }}
                           />
                         ))}
                         {flaggedReq.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-gray-500">No escalated requests.</td></tr>}
@@ -238,8 +258,9 @@ export default function AdminDashboard() {
                     <StandardTableRow 
                       key={r.id} 
                       name={r.name} type={r.type} date={r.date} dept={r.dept} status={r.status} 
-                      onAccept={() => updateRequest(r.id, "Approved")}
-                      onReject={() => updateRequest(r.id, "Rejected")}
+                      onClick={() => setSelectedRequest(r)}
+                      onAccept={(e: any) => { e.stopPropagation(); updateRequest(r.id, "Approved"); }}
+                      onReject={(e: any) => { e.stopPropagation(); updateRequest(r.id, "Rejected"); }}
                     />
                   ))}
                 </tbody>
@@ -262,8 +283,9 @@ export default function AdminDashboard() {
                     <StandardTableRow 
                       key={r.id} 
                       name={r.studentName} type={r.title} date={r.submittedOn} dept="CSE" status={r.status} 
-                      onAccept={() => updateRequest(r.id, "Approved")}
-                      onReject={() => updateRequest(r.id, "Rejected")}
+                      onClick={() => setSelectedRequest(r)}
+                      onAccept={(e: any) => { e.stopPropagation(); updateRequest(r.id, "Approved"); }}
+                      onReject={(e: any) => { e.stopPropagation(); updateRequest(r.id, "Rejected"); }}
                     />
                   ))}
                 </tbody>
@@ -293,8 +315,9 @@ export default function AdminDashboard() {
                       key={req.id}
                       dept={req.studentName} event={req.title} reason={req.reason}
                       priority={req.priority} date={req.submittedOn} 
-                      onAccept={() => updateRequest(req.id, "Approved")}
-                      onReject={() => updateRequest(req.id, "Rejected")}
+                      onClick={() => setSelectedRequest(req)}
+                      onAccept={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Approved"); }}
+                      onReject={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Rejected"); }}
                     />
                   ))}
                   {flaggedReq.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-gray-500 font-medium">No active escalations! 🎉</td></tr>}
@@ -333,6 +356,58 @@ export default function AdminDashboard() {
                  <PlusCircle className="w-5 h-5"/> Initiate Broadcast
                </button>
              </div>
+
+             <div className="mt-12">
+               <h3 className="text-xl font-bold text-[#1E2A5A] mb-6">Sent Announcements</h3>
+               <div className="space-y-4">
+                 {announcements.map((a:any) => (
+                   <div key={a.id} className="p-5 bg-white border border-gray-100 rounded-2xl flex gap-5">
+                     <div className="w-12 h-12 rounded-full bg-[#EAF4FF] flex items-center justify-center shrink-0 text-[#5B8CFF]">
+                       <Megaphone className="w-6 h-6" />
+                     </div>
+                     <div className="flex-1">
+                       <h4 className="font-bold text-[#1E2A5A]">{a.title}</h4>
+                       <p className="text-sm text-[#6B7280] mt-1">{a.content}</p>
+                       <div className="flex items-center gap-3 mt-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                         <span>{a.date}</span>
+                         <span>•</span>
+                         <span className="text-[#5B8CFF]">{a.type || 'Global'}</span>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+                 {announcements.length === 0 && <p className="text-center py-8 text-gray-500">No announcements sent yet.</p>}
+               </div>
+             </div>
+          </div>
+        );
+
+      case "Global Doubts & Q&A":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1">Global Q&A Moderation</h2>
+            <p className="text-[#6B7280] text-sm mb-8">Review and moderate all campus-wide academic doubts.</p>
+            
+            <div className="space-y-6">
+              {doubts.map((item: any) => (
+                <div key={item.id} className="p-6 border border-gray-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7C6CFF]"></div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex gap-2">
+                      {item.tags?.map((t: string) => <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded font-bold uppercase">{t}</span>)}
+                    </div>
+                    <button className="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded transition-colors border border-red-50">Delete Post</button>
+                  </div>
+                  <h3 className="font-bold text-[#1E2A5A] text-lg mb-2">{item.text}</h3>
+                  <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {item.answers} Answers</span>
+                    </div>
+                    <span className="font-semibold">Asked by {item.authorName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         );
 
@@ -475,6 +550,79 @@ export default function AdminDashboard() {
           </p>
         </div>
       </main>
+
+      {/* Request Detail Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden relative">
+            <div className="absolute right-[-10%] top-[-10%] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#EAF4FF] rounded-2xl flex items-center justify-center text-[#5B8CFF]">
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-[#1E2A5A] tracking-tight">{selectedRequest.title || selectedRequest.type}</h2>
+                    <p className="text-sm text-[#6B7280] font-medium mt-1 flex items-center gap-2">
+                      <Clock className="w-4 h-4" /> Submitted by <span className="text-[#1E2A5A] font-bold">{selectedRequest.studentName || selectedRequest.name}</span>
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedRequest(null)} className="p-2 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full transition-colors"><X className="w-6 h-6" /></button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                  <h4 className="text-xs font-black text-[#5B8CFF] uppercase tracking-widest mb-3">Permission Description / Reason</h4>
+                  <p className="text-[#1E2A5A] leading-relaxed font-medium">{selectedRequest.reason || "No detailed description provided."}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase ${
+                      selectedRequest.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                      selectedRequest.status === 'Pending' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                    }`}>{selectedRequest.status}</span>
+                  </div>
+                  <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Date</p>
+                    <p className="text-sm font-bold text-[#1E2A5A]">{selectedRequest.submittedOn || selectedRequest.date}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4 border-t border-gray-100">
+                  {selectedRequest.status === 'Pending' ? (
+                    <>
+                      <button 
+                        onClick={() => { updateRequest(selectedRequest.id, "Approved"); setSelectedRequest(null); }}
+                        className="flex-1 py-4 bg-green-500 text-white font-black rounded-2xl shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <Check className="w-5 h-5" /> Approve Request
+                      </button>
+                      <button 
+                        onClick={() => { updateRequest(selectedRequest.id, "Rejected"); setSelectedRequest(null); }}
+                        className="flex-1 py-4 bg-red-50 text-red-500 font-black rounded-2xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                      >
+                        <X className="w-5 h-5" /> Reject
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={() => setSelectedRequest(null)}
+                      className="w-full py-4 bg-[#1E2A5A] text-white font-black rounded-2xl hover:bg-[#2A3B7D] transition-all"
+                    >
+                      Close Details
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -520,9 +668,9 @@ function StatCard({ title, value, icon: Icon, color, onClick }: { title: string,
   );
 }
 
-function FlaggedTableRow({ dept, event, reason, priority, date, onAccept, onReject }: any) {
+function FlaggedTableRow({ dept, event, reason, priority, date, onAccept, onReject, onClick }: any) {
   return (
-    <tr className="border-b border-gray-50 hover:bg-red-50/30 transition-colors group">
+    <tr onClick={onClick} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors group cursor-pointer">
       <td className="py-4 px-4 font-semibold text-[#1E2A5A]">{dept}</td>
       <td className="py-4 px-4 text-[#1E2A5A]">{event}</td>
       <td className="py-4 px-4 text-red-500 font-medium text-xs max-w-[200px] truncate">{reason}</td>
@@ -544,7 +692,7 @@ function FlaggedTableRow({ dept, event, reason, priority, date, onAccept, onReje
   );
 }
 
-function StandardTableRow({ name, type, date, dept, status, onAccept, onReject }: any) {
+function StandardTableRow({ name, type, date, dept, status, onAccept, onReject, onClick }: any) {
   const getStatusColor = (s: string) => {
     if (s === "Approved") return "bg-green-100 text-green-700";
     if (s === "Pending") return "bg-orange-100 text-orange-700";
@@ -552,7 +700,7 @@ function StandardTableRow({ name, type, date, dept, status, onAccept, onReject }
   };
 
   return (
-    <tr className="border-b border-gray-50 hover:bg-[#F7F8FF] transition-colors group">
+    <tr onClick={onClick} className="border-b border-gray-50 hover:bg-[#F7F8FF] transition-colors group cursor-pointer">
       <td className="py-4 px-4 font-semibold text-[#1E2A5A]">{name}</td>
       <td className="py-4 px-4 text-[#1E2A5A]">{type}</td>
       <td className="py-4 px-4 text-[#6B7280]">{date}</td>
