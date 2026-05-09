@@ -17,6 +17,12 @@ CampusConnect is a modern, full-stack Next.js web application designed to bridge
 - **AI Integration:** A built-in AI assistant to help students draft letters, answer academic questions, and automatically flag high-priority requests for admins.
 - **Admin Moderation:** Powerful analytics, system controls, and content moderation tools.
 
+## 🛠️ Setup & Installation
+1. **Clone the repository**: `git clone <repo-url>`
+2. **Navigate to the project**: `cd campus-connect`
+3. **Install dependencies**: `npm install`
+4. **Run the app**: `npm run dev` (AI Agent is pre-configured and ready!)
+
 ## 👥 Team Members
 | Avatar | Name | GitHub Profile |
 | :---: | :--- | :--- |

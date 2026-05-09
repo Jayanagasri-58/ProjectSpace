@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🚀 Setting up the AI Agent
+
+The AI Assistant is **pre-configured** with a default API key, so it will work immediately upon installation!
+
+If you want to use your own personal key instead:
+1. **Get an API Key**: Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. **Configure**: Create a `.env.local` file in this folder and add `GEMINI_API_KEY=YOUR_KEY`.
+
 ## Getting Started
 
 First, run the development server:
@@ -34,3 +42,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
