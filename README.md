@@ -1,12 +1,15 @@
 # CampusConnect: Smart College Management Platform
-
+ 
 Welcome to the **CampusConnect** repository!
 
-> **📍 Important Note for Reviewers:**
-> All of the main application code (frontend, backend, and API routes) is located inside the `campus-connect` directory.
+## 🌍 Live Demo
+**[https://project-space-vert.vercel.app/](https://project-space-vert.vercel.app/)**
 
-## Live Demo
-🌍 **[https://project-space-vert.vercel.app/](https://project-space-vert.vercel.app/)**
+---
+
+> **📍 Note for Reviewers:**
+> All application code is located inside the `campus-connect` directory.
+
 
 ## About The Project
 CampusConnect is a modern, full-stack Next.js web application designed to bridge the communication gap between Students, Faculty, and Administrators. 

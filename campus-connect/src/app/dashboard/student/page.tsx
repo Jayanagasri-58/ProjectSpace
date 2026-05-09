@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, PlusCircle, Mail, Megaphone, MessageSquare, 
   HelpCircle, Bot, User, Settings, LogOut, Bell, Flag, ChevronRight, 
   CheckCircle2, Clock, XCircle, FilePlus, Sparkles, Lightbulb, Loader2,
-  UploadCloud, Send, Download, Search, Heart, MessageCircle
+  UploadCloud, Send, Download, Search, Heart, MessageCircle, ShieldAlert
 } from "lucide-react";
 
 export default function StudentDashboard() {
@@ -24,6 +24,13 @@ export default function StudentDashboard() {
   const [selectedFaculty, setSelectedFaculty] = useState<string[]>([]);
   const [facultySearch, setFacultySearch] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // Q&A and Announcements detail states
+  const [selectedDoubt, setSelectedDoubt] = useState<string | null>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
+  const [likedDoubts, setLikedDoubts] = useState<string[]>([]);
+  const [commentInput, setCommentInput] = useState<{[key: string]: string}>({});
+  const [isAskDoubtModalOpen, setIsAskDoubtModalOpen] = useState(false);
   
   // Tab State
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -153,7 +160,58 @@ export default function StudentDashboard() {
       const newDoubt = await res.json();
       setDoubts([newDoubt, ...doubts]);
       setDoubtInput("");
+      setIsAskDoubtModalOpen(false);
     }
+  };
+
+  const handleLikeDoubt = (id: string) => {
+    setLikedDoubts(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleAddComment = async (doubtId: string) => {
+    const text = commentInput[doubtId];
+    if (!text?.trim()) return;
+
+    // Mock adding comment
+    setDoubts(prev => prev.map(d => {
+      if (d.id === doubtId) {
+        return { 
+          ...d, 
+          answers: (d.answers || 0) + 1,
+          comments: [...(d.comments || []), { author: user.name, text, timestamp: new Date().toISOString() }]
+        };
+      }
+      return d;
+    }));
+    
+    setCommentInput(prev => ({ ...prev, [doubtId]: "" }));
+  };
+
+  const handleDownloadPDF = (req: any) => {
+    const content = `
+      CAMPUS CONNECT - PERMISSION APPROVAL LETTER
+      ------------------------------------------
+      Request ID: ${req.id}
+      Date: ${req.submittedOn}
+      Status: ${req.status}
+      
+      Student Name: ${user.name}
+      Student ID: 2023CS0192
+      
+      Permission Topic: ${req.title}
+      Reason Provided: ${req.reason}
+      
+      This is an electronically generated approval letter.
+      Authorized by: ${req.targetFaculty?.join(", ") || "Campus Administration"}
+    `;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Approval_${req.title.replace(/\s+/g, '_')}.txt`;
+    link.click();
   };
 
   const handleCreateRequest = async (e: React.FormEvent) => {
@@ -399,7 +457,10 @@ export default function StudentDashboard() {
                   </div>
                   <h3 className="font-bold text-[#1E2A5A] mb-1">{req.title}</h3>
                   <p className="text-xs text-gray-500 mb-6 line-clamp-2">{req.reason}</p>
-                  <button className="w-full py-2 bg-gray-50 hover:bg-[#5B8CFF] hover:text-white text-[#1E2A5A] rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleDownloadPDF(req)}
+                    className="w-full py-2 bg-gray-50 hover:bg-[#5B8CFF] hover:text-white text-[#1E2A5A] rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
                     <Download className="w-4 h-4" /> Download PDF
                   </button>
                 </div>
@@ -421,8 +482,12 @@ export default function StudentDashboard() {
             
             <div className="space-y-4">
               {announcements.map((a:any) => (
-                <div key={a.id} className="p-5 border border-gray-100 rounded-2xl hover:border-[#5B8CFF]/30 hover:bg-[#F7F8FF] transition-all flex gap-5">
-                  <div className="w-12 h-12 rounded-full bg-[#EAF4FF] flex items-center justify-center shrink-0 text-[#5B8CFF]">
+                <div 
+                  key={a.id} 
+                  onClick={() => setSelectedAnnouncement(a)}
+                  className="p-5 border border-gray-100 rounded-2xl hover:border-[#5B8CFF]/30 hover:bg-[#F7F8FF] transition-all flex gap-5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-[#EAF4FF] flex items-center justify-center shrink-0 text-[#5B8CFF] group-hover:scale-110 transition-transform">
                     <Megaphone className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
@@ -511,33 +576,70 @@ export default function StudentDashboard() {
                 <h2 className="text-2xl font-bold text-[#1E2A5A]">Doubts & Q&A Forum</h2>
                 <p className="text-[#6B7280] text-sm mt-1">Ask questions and help your peers globally.</p>
               </div>
-            </div>
-
-            <form onSubmit={handleAskDoubt} className="mb-8 flex gap-3">
-              <input 
-                type="text" 
-                value={doubtInput}
-                onChange={(e) => setDoubtInput(e.target.value)}
-                placeholder="Ask a question..." 
-                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" 
-              />
-              <button type="submit" className="px-6 py-3 rounded-xl bg-[#7C6CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#6A5AEE]">
-                <HelpCircle className="w-4 h-4" /> Ask Question
+              <button 
+                onClick={() => setIsAskDoubtModalOpen(true)}
+                className="px-6 py-3 rounded-xl bg-[#7C6CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#6A5AEE] shadow-lg shadow-[#7C6CFF]/20"
+              >
+                <PlusCircle className="w-4 h-4" /> Ask a Question
               </button>
-            </form>
+            </div>
 
             <div className="space-y-4">
               {doubts.map((item: any) => (
-                <div key={item.id} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow relative">
+                <div key={item.id} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow relative bg-white">
                   <h3 className="font-bold text-[#1E2A5A] text-lg mb-2">{item.text}</h3>
                   <div className="flex gap-2 mb-4">
                     {item.tags?.map((t: string) => <span key={t} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md font-bold uppercase">{t}</span>)}
                   </div>
                   <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
-                    <span className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"><Heart className="w-4 h-4" /> Like</span>
-                    <span className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"><MessageCircle className="w-4 h-4" /> {item.answers || 0} Answers</span>
+                    <span 
+                      onClick={() => handleLikeDoubt(item.id)}
+                      className={`flex items-center gap-1 cursor-pointer transition-colors ${likedDoubts.includes(item.id) ? 'text-red-500' : 'hover:text-[#5B8CFF]'}`}
+                    >
+                      <Heart className={`w-4 h-4 ${likedDoubts.includes(item.id) ? 'fill-current' : ''}`} /> 
+                      {likedDoubts.includes(item.id) ? 'Liked' : 'Like'}
+                    </span>
+                    <span 
+                      onClick={() => setSelectedDoubt(selectedDoubt === item.id ? null : item.id)}
+                      className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4" /> {item.answers || 0} Answers
+                    </span>
                   </div>
-                  <span className="absolute top-4 right-4 text-xs font-bold text-gray-400">Asked by {item.authorName} ({item.authorRole})</span>
+                  
+                  {/* Comments Section */}
+                  {selectedDoubt === item.id && (
+                    <div className="mt-6 pt-6 border-t border-gray-50 animate-in slide-in-from-top-2 duration-200">
+                      <div className="space-y-4 mb-4">
+                        {item.comments?.map((c: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 p-3 rounded-xl">
+                            <p className="text-xs font-bold text-[#1E2A5A] mb-1">{c.author}</p>
+                            <p className="text-sm text-[#6B7280]">{c.text}</p>
+                          </div>
+                        ))}
+                        {(!item.comments || item.comments.length === 0) && (
+                          <p className="text-xs text-gray-400 italic">No answers yet. Be the first to help!</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={commentInput[item.id] || ""}
+                          onChange={(e) => setCommentInput(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          placeholder="Write an answer..." 
+                          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:border-[#5B8CFF]"
+                        />
+                        <button 
+                          onClick={() => handleAddComment(item.id)}
+                          className="p-2 bg-[#5B8CFF] text-white rounded-lg hover:bg-[#4A7BEE]"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <span className="absolute top-4 right-4 text-xs font-bold text-gray-400">Asked by {item.authorName}</span>
                 </div>
               ))}
               {doubts.length === 0 && (
@@ -594,6 +696,7 @@ export default function StudentDashboard() {
           </div>
         );
 
+
       case "Profile":
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] max-w-4xl mx-auto">
@@ -602,9 +705,6 @@ export default function StudentDashboard() {
               <div className="flex flex-col items-center">
                 <div className="relative">
                   <img src={user.avatar} alt="Profile" className="w-32 h-32 rounded-full border-4 border-[#EAF4FF] object-cover" />
-                  <button className="absolute bottom-0 right-0 p-2 bg-[#5B8CFF] text-white rounded-full shadow-lg hover:scale-110 transition-transform">
-                    <UploadCloud className="w-4 h-4" />
-                  </button>
                 </div>
                 <h3 className="mt-4 text-xl font-bold text-[#1E2A5A]">{user.name}</h3>
                 <p className="text-sm text-[#6B7280]">{user.role}</p>
@@ -613,26 +713,22 @@ export default function StudentDashboard() {
               
               <div className="flex-1 space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Full Name</label>
-                    <input type="text" defaultValue={user.name} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Full Name</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.name}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Email Address</label>
-                    <input type="email" defaultValue={user.email} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Email Address</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.email}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Student ID / Roll No</label>
-                    <input type="text" defaultValue="2023CS0192" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Phone Number</label>
-                    <input type="text" defaultValue="+91 98765 43210" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Student ID / Roll No</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">2023CS0192</p>
                   </div>
                 </div>
-                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
-                  <button className="px-6 py-2.5 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-                  <button className="px-6 py-2.5 rounded-xl font-semibold text-white bg-[#5B8CFF] hover:bg-[#4A7BEE]">Save Changes</button>
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                  <ShieldAlert className="w-5 h-5 text-[#5B8CFF]" />
+                  <p className="text-sm text-[#5B8CFF] font-medium">Profile details and picture are managed by the administration and cannot be changed here.</p>
                 </div>
               </div>
             </div>
@@ -689,6 +785,63 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-[#F7F8FF] font-sans flex relative">
       
+      {/* Ask Doubt Modal */}
+      {isAskDoubtModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-[#1E2A5A]">Ask a Question</h2>
+              <button onClick={() => setIsAskDoubtModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors"><XCircle className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleAskDoubt} className="space-y-6">
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A]">Your Question</label>
+                <textarea 
+                  required value={doubtInput} onChange={e => setDoubtInput(e.target.value)}
+                  placeholder="What is your doubt?" rows={4}
+                  className="w-full mt-2 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none resize-none"
+                ></textarea>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setIsAskDoubtModalOpen(false)} className="px-6 py-2.5 rounded-xl font-semibold text-[#6B7280] hover:bg-gray-100 transition-colors">Cancel</button>
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#7C6CFF] text-white font-bold hover:shadow-lg transition-all flex items-center gap-2">
+                  <Send className="w-4 h-4" /> Post Question
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement Detail Modal */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#EAF4FF] flex items-center justify-center text-[#5B8CFF]">
+                  <Megaphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-[#1E2A5A]">{selectedAnnouncement.title}</h2>
+                  <p className="text-sm text-[#6B7280]">Posted on {selectedAnnouncement.date}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedAnnouncement(null)} className="text-gray-400 hover:text-red-500 transition-colors"><XCircle className="w-6 h-6" /></button>
+            </div>
+            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6">
+              <p className="text-[#1E2A5A] leading-relaxed whitespace-pre-wrap">{selectedAnnouncement.content}</p>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="px-3 py-1 bg-[#EDE9FE] text-[#7C6CFF] text-xs font-bold rounded-lg uppercase tracking-wider">
+                {selectedAnnouncement.type || "Official Update"}
+              </span>
+              <button onClick={() => setSelectedAnnouncement(null)} className="px-6 py-2.5 rounded-xl bg-[#1E2A5A] text-white font-semibold hover:bg-[#2A3B7D] transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Request Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
