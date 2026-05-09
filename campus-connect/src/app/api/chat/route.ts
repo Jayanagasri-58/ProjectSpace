@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const { message } = await req.json();
     
     // Get the generative model
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Provide a system prompt context so it acts like a Campus AI
     const prompt = `You are the CampusConnect AI Assistant. You are a highly intelligent, helpful, and friendly AI tutor for college students. 
