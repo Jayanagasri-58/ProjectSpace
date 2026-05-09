@@ -70,7 +70,21 @@
       "content": "Make sure to register for CodeFest 2024!"
     }
   ],
-  "messages": [],
+  "messages": [
+    {
+      "id": "msg_1778231847651",
+      "text": "tell me about midexamination schedule",
+      "authorId": "s1",
+      "authorName": "Rohit Sharma",
+      "authorRole": "Student",
+      "type": "doubt",
+      "answers": 0,
+      "tags": [
+        "General"
+      ],
+      "timestamp": "2026-05-08T09:17:27.651Z"
+    }
+  ],
   "facultyRequests": [
     {
       "id": "f1",

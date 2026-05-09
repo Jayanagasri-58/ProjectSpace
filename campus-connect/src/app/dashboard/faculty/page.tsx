@@ -55,12 +55,12 @@ export default function FacultyDashboard() {
       return;
     }
     setUser(parsedUser);
-    fetchData();
+    fetchData(parsedUser.id);
   }, [router]);
 
-  const fetchData = async () => {
+  const fetchData = async (facultyId: string) => {
     const [reqRes, annRes, msgRes, doubtRes] = await Promise.all([
-      fetch('/api/requests'),
+      fetch(`/api/requests?facultyId=${facultyId}`),
       fetch('/api/announcements'),
       fetch('/api/messages?type=message'),
       fetch('/api/messages?type=doubt')

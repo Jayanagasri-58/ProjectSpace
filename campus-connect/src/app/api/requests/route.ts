@@ -4,10 +4,14 @@ import { getRequests, saveRequest } from '@/lib/db';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get('studentId');
+  const facultyId = searchParams.get('facultyId');
   
   let requests = getRequests();
   if (studentId) {
     requests = requests.filter((r: any) => r.studentId === studentId);
+  }
+  if (facultyId) {
+    requests = requests.filter((r: any) => !r.targetFaculty || r.targetFaculty.includes(facultyId));
   }
   
   return NextResponse.json(requests);

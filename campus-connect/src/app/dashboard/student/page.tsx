@@ -19,6 +19,12 @@ export default function StudentDashboard() {
   const [messageInput, setMessageInput] = useState("");
   const [doubtInput, setDoubtInput] = useState("");
   
+  // Faculty Selection State
+  const [facultyList, setFacultyList] = useState<any[]>([]);
+  const [selectedFaculty, setSelectedFaculty] = useState<string[]>([]);
+  const [facultySearch, setFacultySearch] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
   // Tab State
   const [activeTab, setActiveTab] = useState("Dashboard");
 
@@ -87,16 +93,21 @@ export default function StudentDashboard() {
   }, [router]);
 
   const fetchData = async (studentId: string) => {
-    const [reqRes, annRes, msgRes, doubtRes] = await Promise.all([
+    const [reqRes, annRes, msgRes, doubtRes, userRes] = await Promise.all([
       fetch(`/api/requests?studentId=${studentId}`),
       fetch('/api/announcements'),
       fetch('/api/messages?type=message'),
-      fetch('/api/messages?type=doubt')
+      fetch('/api/messages?type=doubt'),
+      fetch('/api/users')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
     if (doubtRes.ok) setDoubts(await doubtRes.json());
+    if (userRes.ok) {
+      const users = await userRes.json();
+      setFacultyList(users.filter((u: any) => u.role === 'Faculty'));
+    }
   };
 
   const handleSendMessageUniversal = async (e: React.FormEvent) => {
@@ -147,6 +158,10 @@ export default function StudentDashboard() {
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedFaculty.length === 0) {
+      alert("Please select at least one faculty member.");
+      return;
+    }
     setIsSubmitting(true);
     const res = await fetch('/api/requests', {
       method: 'POST',
@@ -156,6 +171,7 @@ export default function StudentDashboard() {
         studentName: user.name,
         title: newReqTitle,
         reason: newReqReason,
+        targetFaculty: selectedFaculty,
         // File upload mock - in a real app this would use FormData
         hasAttachment: !!newReqFile
       })
@@ -167,6 +183,7 @@ export default function StudentDashboard() {
       setNewReqTitle("");
       setNewReqReason("");
       setNewReqFile(null);
+      setSelectedFaculty([]);
     }
     setIsSubmitting(false);
   };
@@ -675,7 +692,7 @@ export default function StudentDashboard() {
       {/* Create Request Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-2xl font-bold text-[#1E2A5A]">New Request</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors"><XCircle className="w-6 h-6" /></button>
@@ -698,6 +715,58 @@ export default function StudentDashboard() {
                   placeholder="Explain why you need this permission..." rows={3}
                   className="w-full mt-1.5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none resize-none"
                 ></textarea>
+              </div>
+
+              {/* Faculty Selection */}
+              <div className="relative z-50">
+                <label className="text-sm font-semibold text-[#1E2A5A]">Select Faculty (Tagging)</label>
+                <div className="relative mt-1.5">
+                  <div 
+                    className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 focus-within:border-[#5B8CFF] focus-within:bg-white transition-colors cursor-text min-h-[48px] flex flex-wrap gap-2 items-center relative z-20"
+                    onClick={() => setIsDropdownOpen(true)}
+                  >
+                    {selectedFaculty.map(id => {
+                      const fac = facultyList.find(f => f.id === id);
+                      return (
+                        <span key={id} className="flex items-center gap-1 bg-[#EAF4FF] text-[#5B8CFF] text-xs font-bold px-2 py-1 rounded-md">
+                          {fac?.name || id}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedFaculty(prev => prev.filter(fid => fid !== id)); }} className="hover:text-red-500"><XCircle className="w-3 h-3" /></button>
+                        </span>
+                      );
+                    })}
+                    <input 
+                      type="text" 
+                      placeholder={selectedFaculty.length === 0 ? "Search and select faculty..." : ""}
+                      value={facultySearch}
+                      onChange={e => { setFacultySearch(e.target.value); setIsDropdownOpen(true); }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      className="bg-transparent outline-none flex-1 min-w-[140px] text-sm py-1"
+                    />
+                  </div>
+                  {isDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] rounded-xl z-50 max-h-48 overflow-y-auto">
+                      {facultyList.filter(f => f.name.toLowerCase().includes(facultySearch.toLowerCase()) && !selectedFaculty.includes(f.id)).length === 0 ? (
+                        <div className="p-4 text-sm text-gray-500 text-center">No faculty found.</div>
+                      ) : (
+                        facultyList.filter(f => f.name.toLowerCase().includes(facultySearch.toLowerCase()) && !selectedFaculty.includes(f.id)).map(f => (
+                          <div 
+                            key={f.id} 
+                            onClick={() => { setSelectedFaculty(prev => [...prev, f.id]); setFacultySearch(""); setIsDropdownOpen(false); }}
+                            className="p-3 hover:bg-[#F7F8FF] cursor-pointer flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <img src={f.avatar} alt={f.name} className="w-8 h-8 rounded-full border border-gray-200" />
+                            <div>
+                              <p className="text-sm font-bold text-[#1E2A5A]">{f.name}</p>
+                              <p className="text-xs text-gray-500">{f.details}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Overlay to close dropdown */}
+                {isDropdownOpen && <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setIsDropdownOpen(false); }}></div>}
               </div>
               
               {/* File Upload Section */}
