@@ -16,24 +16,35 @@ export async function POST(req: Request) {
 
     const { message } = await req.json();
     
-    // Get the generative model
+    // Get the generative model - using standard version
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // Provide a system prompt context so it acts like a Campus AI
-    const prompt = `You are the CampusConnect AI Assistant. You are a highly intelligent, helpful, and friendly AI tutor for college students. 
-    You help with academic doubts, explaining complex concepts, programming bugs, and campus-related questions.
-    Keep your answers concise, formatted nicely with markdown, and highly relevant to college students.
     
+    // Provide a system prompt context
+    const prompt = `You are the CampusConnect AI Assistant. You are a helpful AI tutor for college students. 
+    Help with: academic doubts, concepts, and campus questions.
     Student's question: ${message}`;
 
     const result = await model.generateContent(prompt);
+    
+    if (!result.response) {
+      throw new Error("No response from Gemini API");
+    }
+
     const responseText = result.response.text();
 
     return NextResponse.json({ response: responseText });
-  } catch (error) {
-    console.error('AI Error:', error);
+  } catch (error: any) {
+    console.error('AI Assistant Error:', error.message || error);
+    
+    // If it's a 403, it's likely an invalid key or restricted access
+    if (error.message?.includes('403') || error.message?.includes('API_KEY_INVALID')) {
+      return NextResponse.json({ 
+        response: "🔑 **API Key Error:** Your key seems invalid or is still activating. Please double-check it on Vercel and wait 2 minutes." 
+      }, { status: 200 });
+    }
+
     return NextResponse.json({ 
-      response: "Oops! I encountered an error while thinking. Please try asking again." 
+      response: "Oops! I encountered an error while thinking. This usually happens if the API key is missing on Vercel or still activating. Please check your Vercel logs for details." 
     }, { status: 500 });
   }
 }
