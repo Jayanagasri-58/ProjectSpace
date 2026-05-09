@@ -8,6 +8,9 @@ import {
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, Loader2, Clock,
   UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp, ShieldAlert
 } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
+} from 'recharts';
 
 export default function FacultyDashboard() {
   const router = useRouter();
@@ -19,6 +22,22 @@ export default function FacultyDashboard() {
   const [messageInput, setMessageInput] = useState("");
   const [doubtInput, setDoubtInput] = useState("");
   const [activeTab, setActiveTab] = useState("Dashboard");
+
+  // Settings State
+  const [settings, setSettings] = useState({
+    emailAlerts: true,
+    pushNotifications: true,
+    darkMode: false
+  });
+
+  const analyticsData = [
+    { name: 'Jan', requests: 45 },
+    { name: 'Feb', requests: 52 },
+    { name: 'Mar', requests: 38 },
+    { name: 'Apr', requests: 65 },
+    { name: 'May', requests: 48 },
+    { name: 'Jun', requests: 59 },
+  ];
 
   // Create Announcement State
   const [newAnnTitle, setNewAnnTitle] = useState("");
@@ -575,7 +594,8 @@ export default function FacultyDashboard() {
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
             <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8 flex items-center gap-2"><BarChart3 /> Reports & Analytics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <div className="p-6 border border-gray-100 rounded-2xl bg-gray-50 flex flex-col items-center justify-center h-64 text-center">
                 <PieChart className="w-16 h-16 text-[#7C6CFF] mb-4" />
                 <h3 className="font-bold text-[#1E2A5A]">Approval Rate: 85%</h3>
@@ -585,6 +605,38 @@ export default function FacultyDashboard() {
                 <TrendingUp className="w-16 h-16 text-[#5B8CFF] mb-4" />
                 <h3 className="font-bold text-[#1E2A5A]">Activity Spike</h3>
                 <p className="text-sm text-gray-500 mt-2">Permission requests increased by 20% this month.</p>
+              </div>
+            </div>
+
+            <div className="p-8 border border-gray-100 rounded-[2rem] bg-white shadow-sm">
+              <h3 className="text-lg font-bold text-[#1E2A5A] mb-6">Monthly Permission Requests</h3>
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analyticsData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#9CA3AF', fontSize: 12}} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#9CA3AF', fontSize: 12}} 
+                    />
+                    <Tooltip 
+                      cursor={{fill: '#F9FAFB'}}
+                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
+                    />
+                    <Bar dataKey="requests" radius={[6, 6, 0, 0]}>
+                      {analyticsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#5B8CFF' : '#7C6CFF'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
@@ -648,9 +700,50 @@ export default function FacultyDashboard() {
                       <p className="font-semibold text-[#1E2A5A]">Email Alerts for AI Flagged</p>
                       <p className="text-xs text-gray-500">Get notified instantly when AI flags a request.</p>
                     </div>
-                    <div className="w-11 h-6 bg-[#5B8CFF] rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 shadow-sm"></div></div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, emailAlerts: !prev.emailAlerts}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.emailAlerts ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.emailAlerts ? 'right-1' : 'left-1'}`}></div>
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+                    <div>
+                      <p className="font-semibold text-[#1E2A5A]">Push Notifications</p>
+                      <p className="text-xs text-gray-500">Receive dashboard alerts for new requests.</p>
+                    </div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, pushNotifications: !prev.pushNotifications}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.pushNotifications ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.pushNotifications ? 'right-1' : 'left-1'}`}></div>
+                    </button>
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-[#1E2A5A] mb-4 flex items-center gap-2"><Settings className="w-5 h-5 text-[#5B8CFF]" /> Preferences</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+                    <div>
+                      <p className="font-semibold text-[#1E2A5A]">Dark Mode</p>
+                      <p className="text-xs text-gray-500">Switch between light and dark themes.</p>
+                    </div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, darkMode: !prev.darkMode}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.darkMode ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.darkMode ? 'right-1' : 'left-1'}`}></div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <button className="w-full py-4 bg-[#1E2A5A] text-white font-bold rounded-2xl shadow-lg hover:bg-[#2A3B7D] transition-all">
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>

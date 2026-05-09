@@ -8,16 +8,14 @@ import {
   CheckCircle2, Clock, XCircle, FilePlus, Sparkles, Lightbulb, Loader2,
   UploadCloud, Send, Download, Search, Heart, MessageCircle, ShieldAlert
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [doubts, setDoubts] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState("");
-  const [doubtInput, setDoubtInput] = useState("");
   
   // Faculty Selection State
   const [facultyList, setFacultyList] = useState<any[]>([]);
@@ -25,57 +23,19 @@ export default function StudentDashboard() {
   const [facultySearch, setFacultySearch] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
+  // Settings State
+  const [settings, setSettings] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    darkMode: false
+  });
+  
   // Q&A and Announcements detail states
-  const [selectedDoubt, setSelectedDoubt] = useState<string | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
-  const [likedDoubts, setLikedDoubts] = useState<string[]>([]);
-  const [commentInput, setCommentInput] = useState<{[key: string]: string}>({});
-  const [isAskDoubtModalOpen, setIsAskDoubtModalOpen] = useState(false);
   
   // Tab State
   const [activeTab, setActiveTab] = useState("Dashboard");
 
-  // AI Chat State
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState([
-    { sender: "ai", text: "Hi! I am your AI Assistant. I can help you draft permission letters, answer questions about syllabus, or tell you about upcoming events. What do you need help with today?" }
-  ]);
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    // Add user message
-    const userMessage = chatInput;
-    setChatMessages(prev => [...prev, { sender: "user", text: userMessage }]);
-    setChatInput("");
-    
-    // Add a temporary loading message
-    setChatMessages(prev => [...prev, { sender: "ai", text: "Thinking..." }]);
-    
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-      });
-      
-      const data = await res.json();
-      
-      // Replace the "Thinking..." message with actual response
-      setChatMessages(prev => {
-        const newMessages = [...prev];
-        newMessages[newMessages.length - 1] = { sender: "ai", text: data.response };
-        return newMessages;
-      });
-    } catch (error) {
-      setChatMessages(prev => {
-        const newMessages = [...prev];
-        newMessages[newMessages.length - 1] = { sender: "ai", text: "Sorry, I couldn't connect to my brain. Please try again." };
-        return newMessages;
-      });
-    }
-  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,17 +60,15 @@ export default function StudentDashboard() {
   }, [router]);
 
   const fetchData = async (studentId: string) => {
-    const [reqRes, annRes, msgRes, doubtRes, userRes] = await Promise.all([
+    const [reqRes, annRes, msgRes, userRes] = await Promise.all([
       fetch(`/api/requests?studentId=${studentId}`),
       fetch('/api/announcements'),
       fetch('/api/messages?type=message'),
-      fetch('/api/messages?type=doubt'),
       fetch('/api/users')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
-    if (doubtRes.ok) setDoubts(await doubtRes.json());
     if (userRes.ok) {
       const users = await userRes.json();
       setFacultyList(users.filter((u: any) => u.role === 'Faculty'));
@@ -139,79 +97,50 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleAskDoubt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!doubtInput.trim()) return;
-    
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: doubtInput,
-        authorId: user.id,
-        authorName: user.name,
-        authorRole: user.role,
-        type: 'doubt',
-        answers: 0,
-        tags: ["General"]
-      })
-    });
-    if (res.ok) {
-      const newDoubt = await res.json();
-      setDoubts([newDoubt, ...doubts]);
-      setDoubtInput("");
-      setIsAskDoubtModalOpen(false);
-    }
-  };
-
-  const handleLikeDoubt = (id: string) => {
-    setLikedDoubts(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleAddComment = async (doubtId: string) => {
-    const text = commentInput[doubtId];
-    if (!text?.trim()) return;
-
-    // Mock adding comment
-    setDoubts(prev => prev.map(d => {
-      if (d.id === doubtId) {
-        return { 
-          ...d, 
-          answers: (d.answers || 0) + 1,
-          comments: [...(d.comments || []), { author: user.name, text, timestamp: new Date().toISOString() }]
-        };
-      }
-      return d;
-    }));
-    
-    setCommentInput(prev => ({ ...prev, [doubtId]: "" }));
-  };
 
   const handleDownloadPDF = (req: any) => {
-    const content = `
-      CAMPUS CONNECT - PERMISSION APPROVAL LETTER
-      ------------------------------------------
-      Request ID: ${req.id}
-      Date: ${req.submittedOn}
-      Status: ${req.status}
-      
-      Student Name: ${user.name}
-      Student ID: 2023CS0192
-      
-      Permission Topic: ${req.title}
-      Reason Provided: ${req.reason}
-      
-      This is an electronically generated approval letter.
-      Authorized by: ${req.targetFaculty?.join(", ") || "Campus Administration"}
-    `;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Approval_${req.title.replace(/\s+/g, '_')}.txt`;
-    link.click();
+    const doc = new jsPDF();
+    
+    doc.setFontSize(22);
+    doc.setTextColor(30, 42, 90);
+    doc.text("CAMPUS CONNECT", 105, 20, { align: 'center' });
+    
+    doc.setFontSize(16);
+    doc.text("PERMISSION APPROVAL LETTER", 105, 30, { align: 'center' });
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 35, 190, 35);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Request ID: ${req.id}`, 20, 50);
+    doc.text(`Date: ${req.submittedOn}`, 20, 60);
+    doc.text(`Status: ${req.status}`, 20, 70);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Student Details:", 20, 90);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${user.name}`, 30, 100);
+    doc.text(`Student ID: 2023CS0192`, 30, 110);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Permission Details:", 20, 130);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Topic: ${req.title}`, 30, 140);
+    
+    const splitReason = doc.splitTextToSize(`Reason: ${req.reason}`, 150);
+    doc.text(splitReason, 30, 150);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Authorization:", 20, 180);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Authorized by: ${req.targetFaculty?.join(", ") || "Campus Administration"}`, 30, 190);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text("This is an electronically generated approval letter.", 105, 250, { align: 'center' });
+    
+    doc.save(`Approval_${req.title.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleCreateRequest = async (e: React.FormEvent) => {
@@ -342,7 +271,6 @@ export default function StudentDashboard() {
                   <QuickAction icon={PlusCircle} label="New Request" color="blue" onClick={() => setIsModalOpen(true)} />
                   <QuickAction icon={Mail} label="My Letters" color="purple" onClick={() => setActiveTab("My Letters")} />
                   <QuickAction icon={Megaphone} label="Announcements" color="green" onClick={() => setActiveTab("Announcements")} />
-                  <QuickAction icon={HelpCircle} label="Q&A Forum" color="orange" onClick={() => setActiveTab("Doubts & Q&A")} />
                 </div>
               </div>
 
@@ -359,15 +287,6 @@ export default function StudentDashboard() {
                 </button>
               </div>
 
-              <div className="glass-panel bg-gradient-to-br from-[#1E2A5A] to-[#2A3B7D] p-6 rounded-[2rem] text-white mt-auto relative overflow-hidden">
-                <div className="absolute right-[-20%] top-[-20%] w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-                <Bot className="w-8 h-8 text-[#C4B5FD] mb-3 relative z-10" />
-                <h3 className="text-lg font-bold mb-1 relative z-10">AI Help Assistant</h3>
-                <p className="text-sm text-[#C4B5FD] mb-4 relative z-10">Ask doubts or get help from AI Assistant instantly.</p>
-                <button onClick={() => setActiveTab("AI Assistant")} className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold text-sm transition-colors relative z-10 border border-white/10">
-                  Open AI Assistant
-                </button>
-              </div>
             </div>
           </div>
         );
@@ -512,133 +431,6 @@ export default function StudentDashboard() {
         );
 
 
-      case "Doubts & Q&A":
-        return (
-          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-bold text-[#1E2A5A]">Doubts & Q&A Forum</h2>
-                <p className="text-[#6B7280] text-sm mt-1">Ask questions and help your peers globally.</p>
-              </div>
-              <button 
-                onClick={() => setIsAskDoubtModalOpen(true)}
-                className="px-6 py-3 rounded-xl bg-[#7C6CFF] text-white font-semibold flex items-center gap-2 hover:bg-[#6A5AEE] shadow-lg shadow-[#7C6CFF]/20"
-              >
-                <PlusCircle className="w-4 h-4" /> Ask a Question
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {doubts.map((item: any) => (
-                <div key={item.id} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow relative bg-white">
-                  <h3 className="font-bold text-[#1E2A5A] text-lg mb-2">{item.text}</h3>
-                  <div className="flex gap-2 mb-4">
-                    {item.tags?.map((t: string) => <span key={t} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] rounded-md font-bold uppercase">{t}</span>)}
-                  </div>
-                  <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
-                    <span 
-                      onClick={() => handleLikeDoubt(item.id)}
-                      className={`flex items-center gap-1 cursor-pointer transition-colors ${likedDoubts.includes(item.id) ? 'text-red-500' : 'hover:text-[#5B8CFF]'}`}
-                    >
-                      <Heart className={`w-4 h-4 ${likedDoubts.includes(item.id) ? 'fill-current' : ''}`} /> 
-                      {likedDoubts.includes(item.id) ? 'Liked' : 'Like'}
-                    </span>
-                    <span 
-                      onClick={() => setSelectedDoubt(selectedDoubt === item.id ? null : item.id)}
-                      className="flex items-center gap-1 hover:text-[#5B8CFF] cursor-pointer"
-                    >
-                      <MessageCircle className="w-4 h-4" /> {item.answers || 0} Answers
-                    </span>
-                  </div>
-                  
-                  {/* Comments Section */}
-                  {selectedDoubt === item.id && (
-                    <div className="mt-6 pt-6 border-t border-gray-50 animate-in slide-in-from-top-2 duration-200">
-                      <div className="space-y-4 mb-4">
-                        {item.comments?.map((c: any, idx: number) => (
-                          <div key={idx} className="bg-gray-50 p-3 rounded-xl">
-                            <p className="text-xs font-bold text-[#1E2A5A] mb-1">{c.author}</p>
-                            <p className="text-sm text-[#6B7280]">{c.text}</p>
-                          </div>
-                        ))}
-                        {(!item.comments || item.comments.length === 0) && (
-                          <p className="text-xs text-gray-400 italic">No answers yet. Be the first to help!</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          value={commentInput[item.id] || ""}
-                          onChange={(e) => setCommentInput(prev => ({ ...prev, [item.id]: e.target.value }))}
-                          placeholder="Write an answer..." 
-                          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:border-[#5B8CFF]"
-                        />
-                        <button 
-                          onClick={() => handleAddComment(item.id)}
-                          className="p-2 bg-[#5B8CFF] text-white rounded-lg hover:bg-[#4A7BEE]"
-                        >
-                          <Send className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <span className="absolute top-4 right-4 text-xs font-bold text-gray-400">Asked by {item.authorName}</span>
-                </div>
-              ))}
-              {doubts.length === 0 && (
-                <p className="text-center py-8 text-gray-500">No doubts posted yet. Be the first!</p>
-              )}
-            </div>
-          </div>
-        );
-
-      case "AI Assistant":
-        return (
-          <div className="flex flex-col h-[75vh] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100">
-            <div className="p-6 bg-gradient-to-r from-[#1E2A5A] to-[#2A3B7D] text-white flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Bot className="w-6 h-6 text-[#C4B5FD]" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Campus AI Assistant</h2>
-                <p className="text-sm text-[#C4B5FD]">Always here to help you navigate campus life.</p>
-              </div>
-            </div>
-            
-            <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6 bg-gray-50/50">
-              {chatMessages.map((msg, idx) => (
-                <div key={idx} className={`flex gap-4 ${msg.sender === 'user' ? 'self-end flex-row-reverse' : ''}`}>
-                  {msg.sender === 'ai' ? (
-                    <div className="w-8 h-8 bg-[#1E2A5A] rounded-full flex items-center justify-center text-white shrink-0">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                  ) : (
-                    <img src={user.avatar} alt="User" className="w-8 h-8 rounded-full border border-gray-200 shrink-0 object-cover" />
-                  )}
-                  <div className={`${msg.sender === 'user' ? 'bg-[#5B8CFF] text-white rounded-tr-none' : 'bg-white text-[#1E2A5A] border border-gray-100 rounded-tl-none'} p-4 rounded-2xl shadow-sm max-w-[80%] leading-relaxed whitespace-pre-wrap`}>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 bg-white border-t border-gray-100">
-              <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                <input 
-                  type="text" 
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask the AI Assistant..." 
-                  className="flex-1 px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-[#5B8CFF]/50 transition-shadow" 
-                />
-                <button type="submit" className="px-6 py-3 bg-[#1E2A5A] text-white rounded-xl hover:bg-[#2A3B7D] transition-colors font-semibold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" /> Ask AI
-                </button>
-              </form>
-            </div>
-          </div>
-        );
 
 
       case "Profile":
@@ -693,14 +485,24 @@ export default function StudentDashboard() {
                       <p className="font-semibold text-[#1E2A5A]">Email Notifications</p>
                       <p className="text-xs text-gray-500">Receive emails for permission approvals.</p>
                     </div>
-                    <div className="w-11 h-6 bg-[#5B8CFF] rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 shadow-sm"></div></div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, emailNotifications: !prev.emailNotifications}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.emailNotifications ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.emailNotifications ? 'right-1' : 'left-1'}`}></div>
+                    </button>
                   </div>
                   <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
                     <div>
                       <p className="font-semibold text-[#1E2A5A]">Push Notifications</p>
                       <p className="text-xs text-gray-500">Receive alerts on your device for announcements.</p>
                     </div>
-                    <div className="w-11 h-6 bg-[#5B8CFF] rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 shadow-sm"></div></div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, pushNotifications: !prev.pushNotifications}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.pushNotifications ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.pushNotifications ? 'right-1' : 'left-1'}`}></div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -713,9 +515,20 @@ export default function StudentDashboard() {
                       <p className="font-semibold text-[#1E2A5A]">Dark Mode</p>
                       <p className="text-xs text-gray-500">Switch between light and dark themes.</p>
                     </div>
-                    <div className="w-11 h-6 bg-gray-200 rounded-full relative cursor-pointer"><div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 shadow-sm border border-gray-300"></div></div>
+                    <button 
+                      onClick={() => setSettings(prev => ({...prev, darkMode: !prev.darkMode}))}
+                      className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${settings.darkMode ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all duration-200 ${settings.darkMode ? 'right-1' : 'left-1'}`}></div>
+                    </button>
                   </div>
                 </div>
+              </div>
+              
+              <div className="pt-6">
+                <button className="w-full py-4 bg-[#1E2A5A] text-white font-bold rounded-2xl shadow-lg hover:bg-[#2A3B7D] transition-all">
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>
@@ -729,33 +542,6 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-[#F7F8FF] font-sans flex relative">
       
-      {/* Ask Doubt Modal */}
-      {isAskDoubtModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-[#1E2A5A]">Ask a Question</h2>
-              <button onClick={() => setIsAskDoubtModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors"><XCircle className="w-6 h-6" /></button>
-            </div>
-            <form onSubmit={handleAskDoubt} className="space-y-6">
-              <div>
-                <label className="text-sm font-semibold text-[#1E2A5A]">Your Question</label>
-                <textarea 
-                  required value={doubtInput} onChange={e => setDoubtInput(e.target.value)}
-                  placeholder="What is your doubt?" rows={4}
-                  className="w-full mt-2 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none resize-none"
-                ></textarea>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setIsAskDoubtModalOpen(false)} className="px-6 py-2.5 rounded-xl font-semibold text-[#6B7280] hover:bg-gray-100 transition-colors">Cancel</button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#7C6CFF] text-white font-bold hover:shadow-lg transition-all flex items-center gap-2">
-                  <Send className="w-4 h-4" /> Post Question
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Announcement Detail Modal */}
       {selectedAnnouncement && (
@@ -922,8 +708,6 @@ export default function StudentDashboard() {
           <NavItem icon={PlusCircle} label="Create Request" onClick={() => setIsModalOpen(true)} />
           <NavItem icon={Mail} label="My Letters" active={activeTab === "My Letters"} onClick={() => setActiveTab("My Letters")} />
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
-          <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
-          <NavItem icon={Bot} label="AI Assistant" active={activeTab === "AI Assistant"} onClick={() => setActiveTab("AI Assistant")} />
           
           <div className="pt-6 pb-2">
             <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>

@@ -8,6 +8,9 @@ import {
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, UserCog, Clock, Search, ShieldAlert,
   UploadCloud, Send, Heart, PieChart, TrendingUp, Activity, MessageCircle
 } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
+} from 'recharts';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -19,6 +22,29 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [doubts, setDoubts] = useState<any[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+
+  // Settings State
+  const [settings, setSettings] = useState({
+    maintenanceMode: false,
+    aiModeration: true,
+    enforce2FA: true
+  });
+
+  // Global Announcement Form State
+  const [newAnnTitle, setNewAnnTitle] = useState("");
+  const [newAnnContent, setNewAnnContent] = useState("");
+  const [newAnnType, setNewAnnType] = useState("Global");
+  const [isSubmittingAnn, setIsSubmittingAnn] = useState(false);
+
+  const systemData = [
+    { name: 'Mon', usage: 320 },
+    { name: 'Tue', usage: 450 },
+    { name: 'Wed', usage: 610 },
+    { name: 'Thu', usage: 520 },
+    { name: 'Fri', usage: 480 },
+    { name: 'Sat', usage: 210 },
+    { name: 'Sun', usage: 150 },
+  ];
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -331,34 +357,71 @@ export default function AdminDashboard() {
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
              <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8">Global Announcements Control</h2>
-             <div className="p-10 border-2 border-dashed border-[#5B8CFF]/30 bg-[#EAF4FF]/30 rounded-3xl flex flex-col items-center justify-center text-center">
-               <Megaphone className="w-16 h-16 text-[#5B8CFF] mb-4" />
-               <p className="font-bold text-[#1E2A5A] text-lg">Admin Announcement Broadcaster</p>
-               <p className="text-sm mt-2 max-w-md text-center text-[#6B7280]">Use this module to send critical alerts, emergency lockdowns, or campus-wide holidays to everyone (Faculty and Students).</p>
-               <button 
-                 onClick={async () => {
-                   const title = prompt("Enter Broadcast Title:");
-                   const content = prompt("Enter Announcement Content:");
-                   if (title && content) {
-                     const res = await fetch('/api/announcements', {
-                       method: 'POST',
-                       headers: { 'Content-Type': 'application/json' },
-                       body: JSON.stringify({ title, content, type: 'Global', authorName: 'System Admin', targetYears: ['All Years'], targetBranches: ['All Branches'] })
-                     });
-                     if (res.ok) {
-                       alert("Global Announcement Broadcasted!");
-                       fetchData();
-                     }
-                   }
-                 }}
-                 className="mt-6 px-8 py-3 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 flex items-center gap-2"
-               >
-                 <PlusCircle className="w-5 h-5"/> Initiate Broadcast
-               </button>
+             
+             <div className="max-w-3xl mx-auto bg-gray-50/50 p-8 rounded-3xl border border-gray-100 mb-12">
+               <div className="flex items-center gap-4 mb-6">
+                 <div className="w-12 h-12 bg-[#EAF4FF] rounded-xl flex items-center justify-center text-[#5B8CFF]">
+                   <Megaphone className="w-6 h-6" />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold text-[#1E2A5A]">Create Global Announcement</h3>
+                   <p className="text-sm text-gray-500">This will be broadcasted to all students and faculty.</p>
+                 </div>
+               </div>
+
+               <form onSubmit={async (e) => {
+                 e.preventDefault();
+                 setIsSubmittingAnn(true);
+                 const res = await fetch('/api/announcements', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ 
+                     title: newAnnTitle, 
+                     content: newAnnContent, 
+                     type: newAnnType, 
+                     authorName: 'System Admin', 
+                     targetYears: ['All Years'], 
+                     targetBranches: ['All Branches'] 
+                   })
+                 });
+                 if (res.ok) {
+                   setNewAnnTitle("");
+                   setNewAnnContent("");
+                   fetchData();
+                   alert("Global Announcement Broadcasted!");
+                 }
+                 setIsSubmittingAnn(false);
+               }} className="space-y-4">
+                 <div>
+                   <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Alert Title</label>
+                   <input 
+                     type="text" required value={newAnnTitle} onChange={e => setNewAnnTitle(e.target.value)}
+                     placeholder="e.g., Campus Closed for Holiday"
+                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#5B8CFF] outline-none"
+                   />
+                 </div>
+                 <div>
+                   <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Message Body</label>
+                   <textarea 
+                     required value={newAnnContent} onChange={e => setNewAnnContent(e.target.value)}
+                     placeholder="Type the full announcement content here..." rows={4}
+                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#5B8CFF] outline-none resize-none"
+                   ></textarea>
+                 </div>
+                 <div className="flex justify-end">
+                   <button 
+                     type="submit" 
+                     disabled={isSubmittingAnn}
+                     className="px-8 py-3 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                   >
+                     {isSubmittingAnn ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4"/> Broadcast to Campus</>}
+                   </button>
+                 </div>
+               </form>
              </div>
 
-             <div className="mt-12">
-               <h3 className="text-xl font-bold text-[#1E2A5A] mb-6">Sent Announcements</h3>
+             <div>
+               <h3 className="text-xl font-bold text-[#1E2A5A] mb-6">Recent Broadcasts</h3>
                <div className="space-y-4">
                  {announcements.map((a:any) => (
                    <div key={a.id} className="p-5 bg-white border border-gray-100 rounded-2xl flex gap-5">
@@ -376,7 +439,7 @@ export default function AdminDashboard() {
                      </div>
                    </div>
                  ))}
-                 {announcements.length === 0 && <p className="text-center py-8 text-gray-500">No announcements sent yet.</p>}
+                 {announcements.length === 0 && <p className="text-center py-8 text-gray-500">No broadcasts found.</p>}
                </div>
              </div>
           </div>
@@ -416,21 +479,87 @@ export default function AdminDashboard() {
         return (
           <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh]">
             <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8 flex items-center gap-3"><Activity className="text-[#5B8CFF] w-7 h-7" /> System Analytics Dashboard</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="p-8 border border-gray-100 rounded-[2rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <Users className="w-12 h-12 text-[#7C6CFF] mb-4" />
                 <h3 className="font-bold text-[#1E2A5A] text-lg">Active Users</h3>
                 <p className="text-4xl font-black text-[#7C6CFF] mt-2 tracking-tight">1,024</p>
               </div>
-              <div className="p-8 border border-gray-100 rounded-[2rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <PieChart className="w-12 h-12 text-[#5B8CFF] mb-4" />
                 <h3 className="font-bold text-[#1E2A5A] text-lg">Server Load</h3>
                 <p className="text-4xl font-black text-[#5B8CFF] mt-2 tracking-tight">14%</p>
               </div>
-              <div className="p-8 border border-gray-100 rounded-[2rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <TrendingUp className="w-12 h-12 text-green-500 mb-4" />
                 <h3 className="font-bold text-[#1E2A5A] text-lg">Platform Uptime</h3>
                 <p className="text-4xl font-black text-green-500 mt-2 tracking-tight">99.9%</p>
+              </div>
+            </div>
+
+            <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-white shadow-sm">
+              <h3 className="text-xl font-bold text-[#1E2A5A] mb-8">Daily Traffic Statistics</h3>
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={systemData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#9CA3AF', fontSize: 12}} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#9CA3AF', fontSize: 12}} 
+                    />
+                    <Tooltip 
+                      cursor={{fill: '#F9FAFB'}}
+                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'}}
+                    />
+                    <Bar dataKey="usage" radius={[10, 10, 0, 0]}>
+                      {systemData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#5B8CFF' : '#7C6CFF'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Profile":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-[#1E2A5A] mb-8">Administrator Profile</h2>
+            <div className="flex flex-col md:flex-row gap-10">
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <img src={user.avatar} alt="Profile" className="w-32 h-32 rounded-full border-4 border-[#EAF4FF] object-cover" />
+                </div>
+                <h3 className="mt-4 text-xl font-bold text-[#1E2A5A]">{user.name}</h3>
+                <p className="text-sm text-[#6B7280]">{user.role}</p>
+                <span className="mt-2 px-3 py-1 bg-[#EDE9FE] text-[#7C6CFF] text-xs font-bold rounded-lg">{user.details}</span>
+              </div>
+              
+              <div className="flex-1 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Admin Name</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.name}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">System Email</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.email}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Access Level</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">Root / SuperAdmin</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -446,21 +575,42 @@ export default function AdminDashboard() {
                   <h3 className="font-bold text-[#1E2A5A] text-lg">Maintenance Mode</h3>
                   <p className="text-sm text-gray-500 mt-1">Lock all students and faculty out of the portal during upgrades.</p>
                 </div>
-                <div className="w-14 h-7 bg-gray-200 rounded-full relative cursor-pointer"><div className="w-6 h-6 bg-white rounded-full absolute left-0.5 top-0.5 shadow-sm"></div></div>
+                <button 
+                  onClick={() => setSettings(prev => ({...prev, maintenanceMode: !prev.maintenanceMode}))}
+                  className={`w-14 h-7 rounded-full relative transition-colors duration-200 ${settings.maintenanceMode ? 'bg-[#EF4444]' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full absolute top-0.5 shadow-sm transition-all duration-200 ${settings.maintenanceMode ? 'right-0.5' : 'left-0.5'}`}></div>
+                </button>
               </div>
               <div className="p-6 border border-gray-100 rounded-2xl bg-white shadow-sm flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-[#1E2A5A] text-lg">AI Auto-Moderation</h3>
                   <p className="text-sm text-gray-500 mt-1">Automatically delete toxic or inappropriate messages from Universal Chat.</p>
                 </div>
-                <div className="w-14 h-7 bg-green-500 rounded-full relative cursor-pointer"><div className="w-6 h-6 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div></div>
+                <button 
+                  onClick={() => setSettings(prev => ({...prev, aiModeration: !prev.aiModeration}))}
+                  className={`w-14 h-7 rounded-full relative transition-colors duration-200 ${settings.aiModeration ? 'bg-green-500' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full absolute top-0.5 shadow-sm transition-all duration-200 ${settings.aiModeration ? 'right-0.5' : 'left-0.5'}`}></div>
+                </button>
               </div>
               <div className="p-6 border border-gray-100 rounded-2xl bg-white shadow-sm flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-[#1E2A5A] text-lg">Enforce 2FA</h3>
                   <p className="text-sm text-gray-500 mt-1">Require Two-Factor Authentication for all Admin and Faculty logins.</p>
                 </div>
-                <div className="w-14 h-7 bg-[#5B8CFF] rounded-full relative cursor-pointer"><div className="w-6 h-6 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div></div>
+                <button 
+                  onClick={() => setSettings(prev => ({...prev, enforce2FA: !prev.enforce2FA}))}
+                  className={`w-14 h-7 rounded-full relative transition-colors duration-200 ${settings.enforce2FA ? 'bg-[#5B8CFF]' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full absolute top-0.5 shadow-sm transition-all duration-200 ${settings.enforce2FA ? 'right-0.5' : 'left-0.5'}`}></div>
+                </button>
+              </div>
+
+              <div className="pt-10">
+                <button className="w-full py-4 bg-[#1E2A5A] text-white font-bold rounded-2xl shadow-xl hover:bg-[#2A3B7D] transition-all">
+                  Save System Configuration
+                </button>
               </div>
             </div>
           </div>
@@ -495,6 +645,10 @@ export default function AdminDashboard() {
           <NavItem icon={BarChart3} label="System Analytics" active={activeTab === "System Analytics"} onClick={() => setActiveTab("System Analytics")} />
           
           <div className="pt-6 pb-2">
+            <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
+          </div>
+          <NavItem icon={LayoutDashboard} label="Profile" active={activeTab === "Profile"} onClick={() => setActiveTab("Profile")} />
+          <div className="pt-2 pb-2">
             <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">System</p>
           </div>
           <NavItem icon={Settings} label="Global Settings" active={activeTab === "Global Settings"} onClick={() => setActiveTab("Global Settings")} />
@@ -527,7 +681,7 @@ export default function AdminDashboard() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#EF4444] rounded-full border-2 border-white"></span>
             </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-gray-100 cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="flex items-center gap-3 pl-6 border-l border-gray-100 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setActiveTab("Profile")}>
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-[#1E2A5A]">{user.name}</p>
                 <p className="text-xs text-[#6B7280]">{user.details}</p>
