@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini API with a fallback key for easy evaluation
-const FALLBACK_KEY = "AIzaSyBOc2UQOMe93go75m_P99IqiBj8ZTFQzoU";
-const apiKey = process.env.GEMINI_API_KEY || FALLBACK_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+// Initialize Gemini API
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey || "");
 
 export async function POST(req: Request) {
   try {
