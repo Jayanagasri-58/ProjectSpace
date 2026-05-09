@@ -156,7 +156,7 @@ export default function AdminDashboard() {
                   <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">
                     Broadcast important alerts across the entire campus network.
                   </p>
-                  <button className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold shadow-[0_8px_20px_rgba(91,140,255,0.3)] hover:shadow-[0_12px_25px_rgba(91,140,255,0.4)] transform hover:-translate-y-0.5 transition-all">
+                  <button onClick={() => setActiveTab("Announcements")} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold shadow-[0_8px_20px_rgba(91,140,255,0.3)] hover:shadow-[0_12px_25px_rgba(91,140,255,0.4)] transform hover:-translate-y-0.5 transition-all">
                     Open Announcements UI
                   </button>
                 </div>
@@ -235,7 +235,12 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="text-sm">
                   {facultyRequests.map(r => (
-                    <StandardTableRow key={r.id} name={r.name} type={r.type} date={r.date} dept={r.dept} status={r.status} />
+                    <StandardTableRow 
+                      key={r.id} 
+                      name={r.name} type={r.type} date={r.date} dept={r.dept} status={r.status} 
+                      onAccept={() => updateRequest(r.id, "Approved")}
+                      onReject={() => updateRequest(r.id, "Rejected")}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -254,7 +259,12 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="text-sm">
                   {studentRequests.map(r => (
-                    <StandardTableRow key={r.id} name={r.studentName} type={r.title} date={r.submittedOn} dept="CSE" status={r.status} />
+                    <StandardTableRow 
+                      key={r.id} 
+                      name={r.studentName} type={r.title} date={r.submittedOn} dept="CSE" status={r.status} 
+                      onAccept={() => updateRequest(r.id, "Approved")}
+                      onReject={() => updateRequest(r.id, "Rejected")}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -302,40 +312,30 @@ export default function AdminDashboard() {
                <Megaphone className="w-16 h-16 text-[#5B8CFF] mb-4" />
                <p className="font-bold text-[#1E2A5A] text-lg">Admin Announcement Broadcaster</p>
                <p className="text-sm mt-2 max-w-md text-center text-[#6B7280]">Use this module to send critical alerts, emergency lockdowns, or campus-wide holidays to everyone (Faculty and Students).</p>
-               <button className="mt-6 px-8 py-3 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 flex items-center gap-2">
+               <button 
+                 onClick={async () => {
+                   const title = prompt("Enter Broadcast Title:");
+                   const content = prompt("Enter Announcement Content:");
+                   if (title && content) {
+                     const res = await fetch('/api/announcements', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ title, content, type: 'Global', authorName: 'System Admin', targetYears: ['All Years'], targetBranches: ['All Branches'] })
+                     });
+                     if (res.ok) {
+                       alert("Global Announcement Broadcasted!");
+                       fetchData();
+                     }
+                   }
+                 }}
+                 className="mt-6 px-8 py-3 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 flex items-center gap-2"
+               >
                  <PlusCircle className="w-5 h-5"/> Initiate Broadcast
                </button>
              </div>
           </div>
         );
 
-      case "Campus Messages":
-      case "Global Doubts & Q&A":
-        return (
-          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] flex flex-col items-center justify-center text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-[#EAF4FF] to-[#EDE9FE] border border-white shadow-sm rounded-full flex items-center justify-center mb-6 text-[#5B8CFF]">
-              {activeTab === "Campus Messages" ? <MessageSquare className="w-10 h-10" /> : <HelpCircle className="w-10 h-10" />}
-            </div>
-            <h2 className="text-3xl font-bold text-[#1E2A5A] mb-4">Global {activeTab} Moderation</h2>
-            <p className="text-[#6B7280] max-w-lg leading-relaxed">
-              As an Admin, you are viewing the universal campus feed. You can moderate discussions, remove inappropriate messages, or pin important answers.
-            </p>
-            <div className="mt-8 p-6 bg-white border border-gray-100 shadow-sm rounded-2xl w-full max-w-2xl text-left relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-[#5B8CFF]"></div>
-              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-600">S</div>
-                  <div>
-                    <h4 className="font-bold text-[#1E2A5A] text-sm">Student User</h4>
-                    <p className="text-xs text-gray-500">Posted 5 mins ago in General</p>
-                  </div>
-                </div>
-                <button className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-red-100">Moderate (Delete)</button>
-              </div>
-              <p className="text-sm text-[#1E2A5A] px-2">Hello Faculty, could you please clarify the syllabus for the mid-terms?</p>
-            </div>
-          </div>
-        );
 
       case "System Analytics":
         return (
@@ -416,7 +416,6 @@ export default function AdminDashboard() {
           <NavItem icon={FileText} label="All Requests" active={activeTab === "All Requests"} onClick={() => setActiveTab("All Requests")} />
           <NavItem icon={ShieldAlert} label="Flagged by AI" active={activeTab === "Flagged by AI"} onClick={() => setActiveTab("Flagged by AI")} />
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
-          <NavItem icon={MessageSquare} label="Campus Messages" active={activeTab === "Campus Messages"} onClick={() => setActiveTab("Campus Messages")} />
           <NavItem icon={HelpCircle} label="Global Doubts & Q&A" active={activeTab === "Global Doubts & Q&A"} onClick={() => setActiveTab("Global Doubts & Q&A")} />
           <NavItem icon={BarChart3} label="System Analytics" active={activeTab === "System Analytics"} onClick={() => setActiveTab("System Analytics")} />
           
@@ -545,7 +544,7 @@ function FlaggedTableRow({ dept, event, reason, priority, date, onAccept, onReje
   );
 }
 
-function StandardTableRow({ name, type, date, dept, status }: { name: string, type: string, date: string, dept: string, status: string }) {
+function StandardTableRow({ name, type, date, dept, status, onAccept, onReject }: any) {
   const getStatusColor = (s: string) => {
     if (s === "Approved") return "bg-green-100 text-green-700";
     if (s === "Pending") return "bg-orange-100 text-orange-700";
@@ -563,7 +562,19 @@ function StandardTableRow({ name, type, date, dept, status }: { name: string, ty
         </span>
       </td>
       <td className="py-4 px-4 text-right">
-        <button className="text-xs font-semibold text-[#5B8CFF] hover:underline">Review</button>
+        <div className="flex items-center justify-end gap-2">
+          {status === 'Pending' && onAccept && (
+            <button onClick={onAccept} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-100">
+              <Check className="w-4 h-4" />
+            </button>
+          )}
+          {status === 'Pending' && onReject && (
+            <button onClick={onReject} className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {status !== 'Pending' && <span className="text-xs font-semibold text-gray-400 italic">No Action Needed</span>}
+        </div>
       </td>
     </tr>
   );

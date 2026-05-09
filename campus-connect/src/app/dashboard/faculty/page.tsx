@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Megaphone, MessageSquare, 
   HelpCircle, Bot, Settings, LogOut, Bell, Flag, User,
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, Loader2, Clock,
-  UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp
+  UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp, ShieldAlert
 } from "lucide-react";
 
 export default function FacultyDashboard() {
@@ -26,6 +26,7 @@ export default function FacultyDashboard() {
   const [newAnnType, setNewAnnType] = useState("Important");
   const [targetYears, setTargetYears] = useState<string[]>(["All Years"]);
   const [targetBranches, setTargetBranches] = useState<string[]>(["All Branches"]);
+  const [newAnnFile, setNewAnnFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleSelection = (state: string[], setState: any, value: string, allValue: string) => {
@@ -149,6 +150,7 @@ export default function FacultyDashboard() {
       setAnnouncements([newAnn, ...announcements]);
       setNewAnnTitle("");
       setNewAnnContent("");
+      setNewAnnFile(null);
       setTargetYears(["All Years"]);
       setTargetBranches(["All Branches"]);
       setActiveTab("Announcements");
@@ -487,9 +489,32 @@ export default function FacultyDashboard() {
                 <label className="text-sm font-semibold text-[#1E2A5A] block mb-1">Detailed Message</label>
                 <textarea 
                   required value={newAnnContent} onChange={e => setNewAnnContent(e.target.value)}
-                  placeholder="Type your announcement details here..." rows={6}
+                  placeholder="Type your announcement details here..." rows={4}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] outline-none resize-none"
                 ></textarea>
+              </div>
+
+              {/* Media Upload */}
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A] block mb-2">Attachments / Media (Optional)</label>
+                <div className="flex items-center justify-center w-full">
+                  <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${newAnnFile ? 'border-[#5B8CFF] bg-[#EAF4FF]' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}>
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      {newAnnFile ? (
+                        <>
+                          <FileText className="w-8 h-8 mb-2 text-[#5B8CFF]" />
+                          <p className="text-sm font-bold text-[#1E2A5A]">{newAnnFile.name}</p>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-8 h-8 mb-2 text-gray-400" />
+                          <p className="text-sm text-gray-500 font-medium">Click to upload image or document</p>
+                        </>
+                      )}
+                    </div>
+                    <input type="file" className="hidden" onChange={(e) => { if(e.target.files?.[0]) setNewAnnFile(e.target.files[0]) }} />
+                  </label>
+                </div>
               </div>
               <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setActiveTab("Announcements")} className="px-6 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
@@ -501,62 +526,6 @@ export default function FacultyDashboard() {
           </div>
         );
 
-      case "Messages":
-        return (
-          <div className="flex h-[75vh] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100">
-            {/* Sidebar Chat List */}
-            <div className="w-1/3 border-r border-gray-100 flex flex-col">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="font-bold text-[#1E2A5A] text-lg mb-4">Universal Campus Chat</h3>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-                  <input type="text" placeholder="Search messages..." className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#5B8CFF]/50" />
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-4">
-                <p className="text-xs text-center text-gray-500">Welcome to the Universal Campus Chat. All students and faculty can see this feed.</p>
-              </div>
-            </div>
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-[#F7F8FF]/50">
-              <div className="p-4 border-b border-gray-100 bg-white flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">UC</div>
-                <div>
-                  <h4 className="font-bold text-[#1E2A5A]">Universal Chat</h4>
-                  <p className="text-xs text-green-500">Campus-wide broadcast</p>
-                </div>
-              </div>
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-                {messages.map(msg => {
-                  const isMine = msg.authorId === user.id;
-                  return (
-                    <div key={msg.id} className={`self-${isMine ? 'end' : 'start'} max-w-[70%]`}>
-                      {!isMine && <span className="text-[10px] text-gray-500 font-bold ml-1">{msg.authorName} ({msg.authorRole})</span>}
-                      <div className={`${isMine ? 'bg-[#5B8CFF] text-white rounded-tr-none' : 'bg-white text-[#1E2A5A] rounded-tl-none border border-gray-100'} p-3 rounded-2xl shadow-sm text-sm`}>
-                        {msg.text}
-                      </div>
-                      <span className={`text-xs text-gray-400 mt-1 block ${isMine ? 'text-right mr-1' : 'ml-1'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="p-4 bg-white border-t border-gray-100">
-                <form onSubmit={handleSendMessageUniversal} className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Type a message to the campus..." 
-                    className="flex-1 px-4 py-2 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-[#5B8CFF]/50 text-sm" 
-                  />
-                  <button type="submit" className="p-2.5 bg-[#5B8CFF] text-white rounded-xl hover:bg-[#4A7BEE] transition-colors"><Send className="w-4 h-4" /></button>
-                </form>
-              </div>
-            </div>
-          </div>
-        );
 
       case "Doubts & Q&A":
         return (
@@ -640,26 +609,26 @@ export default function FacultyDashboard() {
               
               <div className="flex-1 space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Full Name</label>
-                    <input type="text" defaultValue={user.name} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Full Name</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.name}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Email Address</label>
-                    <input type="email" defaultValue={user.email} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Email Address</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.email}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Department</label>
-                    <input type="text" defaultValue={user.details} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Department</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.details}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600 block mb-1">Phone Number</label>
-                    <input type="text" defaultValue="+91 98765 00000" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#5B8CFF]" />
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Employee ID</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">FAC_2023_081</p>
                   </div>
                 </div>
-                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
-                  <button className="px-6 py-2.5 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-                  <button className="px-6 py-2.5 rounded-xl font-semibold text-white bg-[#5B8CFF] hover:bg-[#4A7BEE]">Save Changes</button>
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                  <ShieldAlert className="w-5 h-5 text-[#5B8CFF]" />
+                  <p className="text-sm text-[#5B8CFF] font-medium">Profile details are managed by the administration and cannot be changed here.</p>
                 </div>
               </div>
             </div>
@@ -713,7 +682,6 @@ export default function FacultyDashboard() {
           <NavItem icon={Flag} label="Flagged by AI" active={activeTab === "Flagged by AI"} onClick={() => setActiveTab("Flagged by AI")} />
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
           <NavItem icon={PlusCircle} label="Create Announcement" active={activeTab === "Create Announcement"} onClick={() => setActiveTab("Create Announcement")} />
-          <NavItem icon={MessageSquare} label="Messages" active={activeTab === "Messages"} onClick={() => setActiveTab("Messages")} />
           <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
           <NavItem icon={BarChart3} label="Reports & Analytics" active={activeTab === "Reports & Analytics"} onClick={() => setActiveTab("Reports & Analytics")} />
           

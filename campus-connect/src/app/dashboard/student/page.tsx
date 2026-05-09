@@ -511,62 +511,6 @@ export default function StudentDashboard() {
           </div>
         );
 
-      case "Messages":
-        return (
-          <div className="flex h-[75vh] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100">
-            {/* Sidebar Chat List */}
-            <div className="w-1/3 border-r border-gray-100 flex flex-col">
-              <div className="p-4 border-b border-gray-100">
-                <h3 className="font-bold text-[#1E2A5A] text-lg mb-4">Universal Campus Chat</h3>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-                  <input type="text" placeholder="Search messages..." className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#5B8CFF]/50" />
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-4">
-                <p className="text-xs text-center text-gray-500">Welcome to the Universal Campus Chat. All students and faculty can see this feed.</p>
-              </div>
-            </div>
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-[#F7F8FF]/50">
-              <div className="p-4 border-b border-gray-100 bg-white flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">UC</div>
-                <div>
-                  <h4 className="font-bold text-[#1E2A5A]">Universal Chat</h4>
-                  <p className="text-xs text-green-500">Campus-wide broadcast</p>
-                </div>
-              </div>
-              <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-                {messages.map(msg => {
-                  const isMine = msg.authorId === user.id;
-                  return (
-                    <div key={msg.id} className={`self-${isMine ? 'end' : 'start'} max-w-[70%]`}>
-                      {!isMine && <span className="text-[10px] text-gray-500 font-bold ml-1">{msg.authorName} ({msg.authorRole})</span>}
-                      <div className={`${isMine ? 'bg-[#5B8CFF] text-white rounded-tr-none' : 'bg-white text-[#1E2A5A] rounded-tl-none border border-gray-100'} p-3 rounded-2xl shadow-sm text-sm`}>
-                        {msg.text}
-                      </div>
-                      <span className={`text-xs text-gray-400 mt-1 block ${isMine ? 'text-right mr-1' : 'ml-1'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="p-4 bg-white border-t border-gray-100">
-                <form onSubmit={handleSendMessageUniversal} className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Type a message to the campus..." 
-                    className="flex-1 px-4 py-2 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-[#5B8CFF]/50 text-sm" 
-                  />
-                  <button type="submit" className="p-2.5 bg-[#5B8CFF] text-white rounded-xl hover:bg-[#4A7BEE] transition-colors"><Send className="w-4 h-4" /></button>
-                </form>
-              </div>
-            </div>
-          </div>
-        );
 
       case "Doubts & Q&A":
         return (
@@ -978,7 +922,6 @@ export default function StudentDashboard() {
           <NavItem icon={PlusCircle} label="Create Request" onClick={() => setIsModalOpen(true)} />
           <NavItem icon={Mail} label="My Letters" active={activeTab === "My Letters"} onClick={() => setActiveTab("My Letters")} />
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
-          <NavItem icon={MessageSquare} label="Messages" active={activeTab === "Messages"} onClick={() => setActiveTab("Messages")} />
           <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
           <NavItem icon={Bot} label="AI Assistant" active={activeTab === "AI Assistant"} onClick={() => setActiveTab("AI Assistant")} />
           
