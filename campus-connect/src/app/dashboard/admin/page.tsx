@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Megaphone, MessageSquare, 
   HelpCircle, Bot, Settings, LogOut, Bell, Flag,
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, UserCog, Clock, Search, ShieldAlert,
-  UploadCloud, Send, Heart, PieChart, TrendingUp, Activity, MessageCircle
+  UploadCloud, Send, Heart, PieChart, TrendingUp, Activity, MessageCircle, Loader2
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 

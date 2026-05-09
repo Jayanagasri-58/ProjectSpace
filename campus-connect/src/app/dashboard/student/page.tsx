@@ -15,7 +15,6 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [messageInput, setMessageInput] = useState("");
   
   // Faculty Selection State
   const [facultyList, setFacultyList] = useState<any[]>([]);
@@ -60,42 +59,20 @@ export default function StudentDashboard() {
   }, [router]);
 
   const fetchData = async (studentId: string) => {
-    const [reqRes, annRes, msgRes, userRes] = await Promise.all([
+    const [reqRes, annRes, userRes] = await Promise.all([
       fetch(`/api/requests?studentId=${studentId}`),
       fetch('/api/announcements'),
-      fetch('/api/messages?type=message'),
       fetch('/api/users')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
-    if (msgRes.ok) setMessages(await msgRes.json());
     if (userRes.ok) {
       const users = await userRes.json();
       setFacultyList(users.filter((u: any) => u.role === 'Faculty'));
     }
   };
 
-  const handleSendMessageUniversal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim()) return;
-    
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: messageInput,
-        authorId: user.id,
-        authorName: user.name,
-        authorRole: user.role,
-        type: 'message'
-      })
-    });
-    if (res.ok) {
-      const newMsg = await res.json();
-      setMessages([...messages, newMsg]);
-      setMessageInput("");
-    }
-  };
+
 
 
   const handleDownloadPDF = (req: any) => {
