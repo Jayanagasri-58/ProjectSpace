@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Megaphone, MessageSquare, 
   HelpCircle, Bot, Settings, LogOut, Bell, Flag, User,
   Check, X, ChevronRight, BarChart3, PlusCircle, Lightbulb, Loader2, Clock,
-  UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp, ShieldAlert
+  UploadCloud, Send, Search, Heart, MessageCircle, PieChart, TrendingUp, ShieldAlert, FilePlus, XCircle
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
@@ -47,6 +47,12 @@ export default function FacultyDashboard() {
   const [targetBranches, setTargetBranches] = useState<string[]>(["All Branches"]);
   const [newAnnFile, setNewAnnFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Faculty Request State
+  const [isReqModalOpen, setIsReqModalOpen] = useState(false);
+  const [newReqType, setNewReqType] = useState("Research Grant");
+  const [newReqReason, setNewReqReason] = useState("");
+  const [isSubmittingReq, setIsSubmittingReq] = useState(false);
 
   const toggleSelection = (state: string[], setState: any, value: string, allValue: string) => {
     if (value === allValue) {
@@ -89,6 +95,33 @@ export default function FacultyDashboard() {
     if (annRes.ok) setAnnouncements(await annRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
     if (doubtRes.ok) setDoubts(await doubtRes.json());
+  };
+
+  const handleCreateFacultyRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingReq(true);
+    try {
+      const res = await fetch('/api/facultyRequests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user.name,
+          dept: user.details.split('-')[0].trim() || "Gen",
+          type: newReqType,
+          reason: newReqReason
+        })
+      });
+      if (res.ok) {
+        setIsReqModalOpen(false);
+        setNewReqReason("");
+        alert("Request submitted to Admin successfully!");
+        fetchData(user.id);
+      }
+    } catch (err) {
+      alert("Failed to submit request.");
+    } finally {
+      setIsSubmittingReq(false);
+    }
   };
 
   const handleSendMessageUniversal = async (e: React.FormEvent) => {
@@ -276,15 +309,15 @@ export default function FacultyDashboard() {
 
               <div className="space-y-6 flex flex-col">
                 <div className="glass-panel bg-white p-6 rounded-[2rem] text-center flex flex-col items-center">
-                  <div className="w-14 h-14 bg-[#EDE9FE] rounded-full flex items-center justify-center mb-4">
-                    <Megaphone className="w-7 h-7 text-[#7C6CFF]" />
+                  <div className="w-14 h-14 bg-[#EAF4FF] rounded-full flex items-center justify-center mb-4">
+                    <FilePlus className="w-7 h-7 text-[#5B8CFF]" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#1E2A5A] mb-2">Create Announcement</h3>
+                  <h3 className="text-lg font-bold text-[#1E2A5A] mb-2">Admin Approval</h3>
                   <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">
-                    Share important updates, events, or opportunities with your students.
+                    Need Admin approval for grants, events, or official permissions?
                   </p>
-                  <button onClick={() => setActiveTab("Create Announcement")} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold shadow-[0_8px_20px_rgba(91,140,255,0.3)] hover:shadow-[0_12px_25px_rgba(91,140,255,0.4)] transform hover:-translate-y-0.5 transition-all">
-                    + New Announcement
+                  <button onClick={() => setIsReqModalOpen(true)} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold shadow-[0_8px_20px_rgba(91,140,255,0.3)] hover:shadow-[0_12px_25px_rgba(91,140,255,0.4)] transform hover:-translate-y-0.5 transition-all">
+                    + Create New Request
                   </button>
                 </div>
 
@@ -837,6 +870,50 @@ export default function FacultyDashboard() {
           {renderContent()}
         </div>
       </main>
+
+      {/* Admin Permission Request Modal */}
+      {isReqModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200 relative">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-2xl font-bold text-[#1E2A5A]">Admin Permission Request</h2>
+              <button onClick={() => setIsReqModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors"><XCircle className="w-6 h-6" /></button>
+            </div>
+            <p className="text-sm text-[#6B7280] mb-6">Submit a formal request to the Admin department.</p>
+            
+            <form onSubmit={handleCreateFacultyRequest} className="space-y-5">
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A]">Request Type</label>
+                <select 
+                  value={newReqType} onChange={e => setNewReqType(e.target.value)}
+                  className="w-full mt-1.5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none appearance-none"
+                >
+                  <option>Research Grant</option>
+                  <option>Lab Equipment Fund</option>
+                  <option>Seminar Hall Booking</option>
+                  <option>Official Leave</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A]">Reason / Details</label>
+                <textarea 
+                  required value={newReqReason} onChange={e => setNewReqReason(e.target.value)}
+                  placeholder="Explain your request in detail..." rows={4}
+                  className="w-full mt-1.5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none resize-none"
+                ></textarea>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setIsReqModalOpen(false)} className="px-6 py-2.5 rounded-xl font-semibold text-[#6B7280] hover:bg-gray-100 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSubmittingReq} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white font-bold hover:shadow-lg hover:opacity-90 transition-all flex items-center gap-2">
+                  {isSubmittingReq ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit to Admin"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

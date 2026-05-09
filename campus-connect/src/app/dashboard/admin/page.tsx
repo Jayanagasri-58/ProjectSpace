@@ -135,24 +135,29 @@ export default function AdminDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-gray-100">
-                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Department / Person</th>
+                          <th className="pb-3 text-sm font-semibold text-[#6B7280]">Person / Department</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280]">Event / Purpose</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280]">Reason</th>
                           <th className="pb-3 text-sm font-semibold text-[#6B7280] text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        {flaggedReq.slice(0, 3).map((req) => (
+                        {/* Show prioritized pending requests */}
+                        {[...flaggedReq, ...requests.filter(r => r.status === "Pending" && r.priority !== "High")].slice(0, 5).map((req) => (
                           <FlaggedTableRow 
                             key={req.id}
-                            dept={req.studentName} event={req.title} reason={req.reason}
-                            priority={req.priority} date={req.submittedOn} 
+                            dept={req.studentName || req.name} 
+                            event={req.title || req.type} 
+                            reason={req.reason || "General Request"}
+                            priority={req.priority} date={req.submittedOn || req.date} 
                             onClick={() => setSelectedRequest(req)}
                             onAccept={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Approved"); }}
                             onReject={(e: any) => { e.stopPropagation(); updateRequest(req.id, "Rejected"); }}
                           />
                         ))}
-                        {flaggedReq.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-gray-500">No escalated requests.</td></tr>}
+                        {requests.filter(r => r.status === "Pending").length === 0 && (
+                          <tr><td colSpan={4} className="py-12 text-center text-gray-400 font-medium">All caught up! No pending requests.</td></tr>
+                        )}
                       </tbody>
                     </table>
                   </div>

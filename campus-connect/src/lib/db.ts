@@ -82,3 +82,11 @@ export function saveMessage(msg: any) {
   writeData(data);
   return msg;
 }
+
+export function saveFacultyRequest(request: any) {
+  const data = readData();
+  if(!data.facultyRequests) data.facultyRequests = [];
+  data.facultyRequests.unshift(request);
+  writeData(data);
+  return request;
+}
