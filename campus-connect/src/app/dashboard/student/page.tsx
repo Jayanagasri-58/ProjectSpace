@@ -207,6 +207,7 @@ export default function StudentDashboard() {
         const newReq = await res.json();
         setRequests(prev => [newReq, ...prev]);
         setIsModalOpen(false);
+        setActiveTab("My Permissions");
         setNewReqTitle("");
         setNewReqReason("");
         setNewReqFile(null);

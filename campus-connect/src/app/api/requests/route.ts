@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getRequests, saveRequest } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get('studentId');
