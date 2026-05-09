@@ -15,6 +15,8 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messageInput, setMessageInput] = useState("");
   
   // Faculty Selection State
   const [facultyList, setFacultyList] = useState<any[]>([]);
@@ -59,16 +61,40 @@ export default function StudentDashboard() {
   }, [router]);
 
   const fetchData = async (studentId: string) => {
-    const [reqRes, annRes, userRes] = await Promise.all([
+    const [reqRes, annRes, msgRes, userRes] = await Promise.all([
       fetch(`/api/requests?studentId=${studentId}`),
       fetch('/api/announcements'),
+      fetch('/api/messages?type=message'),
       fetch('/api/users')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
+    if (msgRes.ok) setMessages(await msgRes.json());
     if (userRes.ok) {
       const users = await userRes.json();
       setFacultyList(users.filter((u: any) => u.role === 'Faculty'));
+    }
+  };
+
+  const handleSendMessageUniversal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim()) return;
+    
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: messageInput,
+        authorId: user.id,
+        authorName: user.name,
+        authorRole: user.role,
+        type: 'message'
+      })
+    });
+    if (res.ok) {
+      const newMsg = await res.json();
+      setMessages([...messages, newMsg]);
+      setMessageInput("");
     }
   };
 
@@ -511,6 +537,77 @@ export default function StudentDashboard() {
           </div>
         );
 
+      case "Doubts & Q&A":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E2A5A]">Campus Q&A Forum</h2>
+                <p className="text-[#6B7280] text-sm mt-1">Ask questions and share knowledge with everyone.</p>
+              </div>
+              <div className="p-3 bg-[#EDE9FE] rounded-full text-[#7C6CFF]">
+                <HelpCircle className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
+              {messages.map((msg: any) => (
+                <div key={msg.id} className={`flex ${msg.authorId === user.id ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-4 rounded-2xl ${msg.authorId === user.id ? 'bg-[#5B8CFF] text-white rounded-tr-none' : 'bg-gray-100 text-[#1E2A5A] rounded-tl-none'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase opacity-70">{msg.authorName} • {msg.authorRole}</span>
+                    </div>
+                    <p className="text-sm">{msg.text}</p>
+                  </div>
+                </div>
+              ))}
+              {messages.length === 0 && <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-3"><MessageCircle className="w-12 h-12 opacity-20" /><p>No messages yet. Start the conversation!</p></div>}
+            </div>
+
+            <form onSubmit={handleSendMessageUniversal} className="relative">
+              <input 
+                type="text" value={messageInput} onChange={e => setMessageInput(e.target.value)}
+                placeholder="Type your academic doubt or message..."
+                className="w-full pl-6 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:border-[#5B8CFF] focus:bg-white outline-none transition-all"
+              />
+              <button type="submit" className="absolute right-2 top-2 bottom-2 px-4 bg-[#5B8CFF] text-white rounded-xl hover:bg-[#4A7BEE] transition-colors">
+                <Send className="w-5 h-5" />
+              </button>
+            </form>
+          </div>
+        );
+
+      case "Get Help":
+        return (
+          <div className="glass-panel bg-white rounded-[2rem] p-8 min-h-[70vh] flex flex-col">
+             <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-gradient-to-tr from-orange-400 to-red-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <Bot className="w-7 h-7" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-[#1E2A5A]">AI Campus Assistant</h2>
+                <p className="text-xs text-gray-500 flex items-center gap-1"><Sparkles className="w-3 h-3 text-orange-400" /> Powered by Gemini AI</p>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-gray-50/50 rounded-3xl p-6 border border-gray-100 flex flex-col items-center justify-center text-center">
+               <Bot className="w-16 h-16 text-gray-300 mb-4" />
+               <h3 className="text-xl font-bold text-[#1E2A5A]">Ask me anything!</h3>
+               <p className="text-sm text-gray-500 max-w-sm mt-2">I can help you draft permission letters, explain academic concepts, or guide you through campus procedures.</p>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-md">
+                 <button className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-[#5B8CFF] transition-all group">
+                   <p className="text-xs font-bold text-[#5B8CFF] mb-1">DRAFTING</p>
+                   <p className="text-sm text-[#1E2A5A] font-semibold group-hover:text-[#5B8CFF]">Help me write a letter for hackathon leave.</p>
+                 </button>
+                 <button className="p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-[#5B8CFF] transition-all group">
+                   <p className="text-xs font-bold text-[#5B8CFF] mb-1">ACADEMICS</p>
+                   <p className="text-sm text-[#1E2A5A] font-semibold group-hover:text-[#5B8CFF]">Explain the concept of Big O notation.</p>
+                 </button>
+               </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -685,6 +782,8 @@ export default function StudentDashboard() {
           <NavItem icon={PlusCircle} label="Create Request" onClick={() => setIsModalOpen(true)} />
           <NavItem icon={Mail} label="My Letters" active={activeTab === "My Letters"} onClick={() => setActiveTab("My Letters")} />
           <NavItem icon={Megaphone} label="Announcements" active={activeTab === "Announcements"} onClick={() => setActiveTab("Announcements")} />
+          <NavItem icon={HelpCircle} label="Doubts & Q&A" active={activeTab === "Doubts & Q&A"} onClick={() => setActiveTab("Doubts & Q&A")} />
+          <NavItem icon={Bot} label="Get Help" active={activeTab === "Get Help"} onClick={() => setActiveTab("Get Help")} />
           
           <div className="pt-6 pb-2">
             <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
