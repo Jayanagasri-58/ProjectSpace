@@ -51,11 +51,19 @@ export function saveRequest(request: any) {
 
 export function updateRequestStatus(id: string, status: string) {
   const data = readData();
-  const index = data.requests.findIndex((r: any) => r.id === id);
-  if (index !== -1) {
+  // Search in student requests
+  let index = data.requests?.findIndex((r: any) => r.id === id);
+  if (index !== -1 && index !== undefined) {
     data.requests[index].status = status;
     writeData(data);
     return data.requests[index];
+  }
+  // Search in faculty requests
+  index = data.facultyRequests?.findIndex((r: any) => r.id === id);
+  if (index !== -1 && index !== undefined) {
+    data.facultyRequests[index].status = status;
+    writeData(data);
+    return data.facultyRequests[index];
   }
   return null;
 }

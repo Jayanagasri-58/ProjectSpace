@@ -83,6 +83,10 @@ export default function FacultyDashboard() {
     }
     setUser(parsedUser);
     fetchData(parsedUser.id);
+
+    // Polling to keep data fresh (every 30 seconds)
+    const interval = setInterval(() => fetchData(parsedUser.id), 30000);
+    return () => clearInterval(interval);
   }, [router]);
 
     const [reqRes, annRes, msgRes, doubtRes, facReqRes] = await Promise.all([

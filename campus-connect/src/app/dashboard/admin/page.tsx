@@ -59,6 +59,10 @@ export default function AdminDashboard() {
     }
     setUser(parsedUser);
     fetchData();
+    
+    // Polling to keep data fresh (every 30 seconds)
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [router]);
 
   const fetchData = async () => {
@@ -90,6 +94,8 @@ export default function AdminDashboard() {
 
   const updateRequest = async (id: string, status: string) => {
     setRequests(reqs => reqs.map(r => r.id === id ? { ...r, status } : r));
+    setFacultyRequests(reqs => reqs.map(r => r.id === id ? { ...r, status } : r));
+    
     await fetch(`/api/requests/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
