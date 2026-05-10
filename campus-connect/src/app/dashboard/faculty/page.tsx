@@ -23,6 +23,7 @@ export default function FacultyDashboard() {
   const [doubtInput, setDoubtInput] = useState("");
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [myAdminRequests, setMyAdminRequests] = useState<any[]>([]);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -104,12 +105,13 @@ export default function FacultyDashboard() {
   }, [router]);
 
   const fetchData = async (facultyId: string) => {
-    const [reqRes, annRes, msgRes, doubtRes, facReqRes] = await Promise.all([
+    const [reqRes, annRes, msgRes, doubtRes, facReqRes, userRes] = await Promise.all([
       fetch(`/api/requests?facultyId=${facultyId}`),
       fetch('/api/announcements'),
       fetch('/api/messages?type=message'),
       fetch('/api/messages?type=doubt'),
-      fetch('/api/facultyRequests')
+      fetch('/api/facultyRequests'),
+      fetch('/api/users')
     ]);
     if (reqRes.ok) setRequests(await reqRes.json());
     if (annRes.ok) setAnnouncements(await annRes.json());
@@ -119,6 +121,10 @@ export default function FacultyDashboard() {
       const allFacReq = await facReqRes.json();
       // Filter to only show requests from THIS faculty
       setMyAdminRequests(allFacReq.filter((r: any) => r.name === user?.name || r.facultyId === facultyId));
+    }
+    if (userRes.ok) {
+      const users = await userRes.json();
+      setAllStudents(users.filter((u: any) => u.role === 'Student'));
     }
   };
 
@@ -247,7 +253,7 @@ export default function FacultyDashboard() {
         return (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-              <StatCard title="My Students" value="128" icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
+              <StatCard title="My Students" value={allStudents.length.toString()} icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
               <StatCard title="Total Requests" value={requests.length.toString()} icon={FileText} color="blue" onClick={() => setActiveTab("Permission Requests")} />
               <StatCard title="Pending" value={pendingReq.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("Permission Requests")} />
               <StatCard title="Approved" value={approvedReq.toString()} icon={Check} color="green" />
@@ -365,23 +371,21 @@ export default function FacultyDashboard() {
             <h2 className="text-2xl font-bold text-[#1E2A5A] mb-1">My Students</h2>
             <p className="text-[#6B7280] text-sm mb-8">View and manage the students under your supervision.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { name: "Rohit Sharma", id: "2023CS0192", course: "B.Tech CSE - 3rd Year", reqs: 3 },
-                { name: "Priya Singh", id: "2023CS0104", course: "B.Tech CSE - 3rd Year", reqs: 1 },
-                { name: "Amit Kumar", id: "2023CS0211", course: "B.Tech IT - 3rd Year", reqs: 0 },
-                { name: "Sneha Reddy", id: "2023CS0145", course: "B.Tech CSE - 3rd Year", reqs: 5 }
-              ].map((s, i) => (
+              {allStudents.map((s, i) => (
                 <div key={i} className="p-5 border border-gray-100 rounded-2xl hover:shadow-md transition-shadow flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-[#EAF4FF] text-[#5B8CFF] flex items-center justify-center font-bold text-xl">
                     {s.name.charAt(0)}
                   </div>
                   <div>
                     <h3 className="font-bold text-[#1E2A5A]">{s.name}</h3>
-                    <p className="text-xs text-gray-500">{s.id} • {s.course}</p>
-                    <p className="text-xs font-semibold text-[#5B8CFF] mt-1">{s.reqs} Permission Requests</p>
+                    <p className="text-xs text-gray-500">{s.email} • {s.details || "Student"}</p>
+                    <p className="text-xs font-semibold text-[#5B8CFF] mt-1">Active Learner</p>
                   </div>
                 </div>
               ))}
+              {allStudents.length === 0 && (
+                <div className="col-span-full py-12 text-center text-gray-400">No students found in the database.</div>
+              )}
             </div>
           </div>
         );

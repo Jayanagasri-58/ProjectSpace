@@ -131,9 +131,17 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               <StatCard title="Total Students" value={usersList.filter(u => u.role === "Student").length.toString()} icon={Users} color="purple" onClick={() => setActiveTab("Manage Users")} />
               <StatCard title="Total Faculty" value={usersList.filter(u => u.role === "Faculty").length.toString()} icon={UserCog} color="blue" onClick={() => setActiveTab("Manage Users")} />
-              <StatCard title="Global Pending" value={(requests.filter(r => r.status === 'Pending').length + facultyRequests.filter(r => r.status === 'Pending').length).toString()} icon={Clock} color="orange" onClick={() => setActiveTab("All Requests")} />
-              <StatCard title="Approved Today" value="15" icon={Check} color="green" />
-              <StatCard title="Rejected Today" value="3" icon={X} color="red" />
+              <StatCard title="Global Pending" value={allPending.length.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("All Requests")} />
+              <StatCard 
+                title="Approved Today" 
+                value={[...requests, ...facultyRequests].filter(r => r.status === 'Approved' && (r.submittedOn || r.date) === new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).length.toString()} 
+                icon={Check} color="green" 
+              />
+              <StatCard 
+                title="Rejected Today" 
+                value={[...requests, ...facultyRequests].filter(r => r.status === 'Rejected' && (r.submittedOn || r.date) === new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).length.toString()} 
+                icon={X} color="red" 
+              />
               <StatCard title="AI Escalated" value={flaggedReq.length.toString()} icon={ShieldAlert} color="red-solid" onClick={() => setActiveTab("Flagged by AI")} />
             </div>
 
@@ -508,17 +516,21 @@ export default function AdminDashboard() {
               <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <Users className="w-12 h-12 text-[#7C6CFF] mb-4" />
                 <h3 className="font-bold text-[#1E2A5A] text-lg">Active Users</h3>
-                <p className="text-4xl font-black text-[#7C6CFF] mt-2 tracking-tight">1,024</p>
+                <p className="text-4xl font-black text-[#7C6CFF] mt-2 tracking-tight">{usersList.length}</p>
               </div>
               <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <PieChart className="w-12 h-12 text-[#5B8CFF] mb-4" />
-                <h3 className="font-bold text-[#1E2A5A] text-lg">Server Load</h3>
-                <p className="text-4xl font-black text-[#5B8CFF] mt-2 tracking-tight">14%</p>
+                <h3 className="font-bold text-[#1E2A5A] text-lg">Platform Requests</h3>
+                <p className="text-4xl font-black text-[#5B8CFF] mt-2 tracking-tight">{requests.length + facultyRequests.length}</p>
               </div>
               <div className="p-8 border border-gray-100 rounded-[2.5rem] bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center text-center shadow-sm">
                 <TrendingUp className="w-12 h-12 text-green-500 mb-4" />
-                <h3 className="font-bold text-[#1E2A5A] text-lg">Platform Uptime</h3>
-                <p className="text-4xl font-black text-green-500 mt-2 tracking-tight">99.9%</p>
+                <h3 className="font-bold text-[#1E2A5A] text-lg">Approved Rate</h3>
+                <p className="text-4xl font-black text-green-500 mt-2 tracking-tight">
+                  {requests.length + facultyRequests.length > 0 
+                    ? Math.round(([...requests, ...facultyRequests].filter(r => r.status === 'Approved').length / (requests.length + facultyRequests.length)) * 100) 
+                    : 0}%
+                </p>
               </div>
             </div>
 
