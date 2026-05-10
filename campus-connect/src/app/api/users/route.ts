@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
       await connectDB();
       // Never return password field
       const users = await User.find({}, { password: 0 });
-      return NextResponse.json(users);
+      return NextResponse.json(users, {
+        headers: { 'Cache-Control': 'no-store' }
+      });
     } catch (dbErr: any) {
       console.warn('MongoDB unavailable, using local data:', dbErr.message);
       // Strip passwords from local data
