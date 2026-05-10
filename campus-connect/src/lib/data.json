@@ -1,13 +1,13 @@
 {
   "users": [
     {
-      "id": "s1",
-      "name": "Rohit Sharma",
-      "email": "student@college.edu",
+      "id": "a1",
+      "name": "Dr. Vikram Singh",
+      "email": "admin@college.edu",
       "password": "password123",
-      "role": "Student",
-      "avatar": "https://i.pravatar.cc/150?u=rohit",
-      "details": "B.Tech CSE - 3rd Year"
+      "role": "Admin",
+      "avatar": "https://i.pravatar.cc/150?u=vikram",
+      "details": "Head of Administration"
     },
     {
       "id": "f1",
@@ -19,104 +19,229 @@
       "details": "Proctor - CSE (3rd Year)"
     },
     {
-      "id": "a1",
-      "name": "Dr. Vikram Singh",
-      "email": "admin@college.edu",
+      "id": "f2",
+      "name": "Dr. Ramesh Kumar",
+      "email": "ramesh@college.edu",
       "password": "password123",
-      "role": "Admin",
-      "avatar": "https://i.pravatar.cc/150?u=admin",
-      "details": "Head of Department"
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=ramesh",
+      "details": "HOD - Electronics & Communication"
+    },
+    {
+      "id": "f3",
+      "name": "Prof. Sunita Rao",
+      "email": "sunita@college.edu",
+      "password": "password123",
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=sunita",
+      "details": "Assistant Professor - Mathematics"
+    },
+    {
+      "id": "s1",
+      "name": "Rohit Sharma",
+      "email": "student@college.edu",
+      "password": "password123",
+      "role": "Student",
+      "avatar": "https://i.pravatar.cc/150?u=rohit",
+      "details": "B.Tech CSE - 3rd Year"
+    },
+    {
+      "id": "s2",
+      "name": "Priya Patel",
+      "email": "priya@college.edu",
+      "password": "password123",
+      "role": "Student",
+      "avatar": "https://i.pravatar.cc/150?u=priya",
+      "details": "B.Tech CSE - 2nd Year"
+    },
+    {
+      "id": "s3",
+      "name": "Arjun Mehta",
+      "email": "arjun@college.edu",
+      "password": "password123",
+      "role": "Student",
+      "avatar": "https://i.pravatar.cc/150?u=arjun",
+      "details": "B.Tech ECE - 3rd Year"
     }
   ],
   "requests": [
     {
-      "id": "req_1778176026488",
+      "id": "req_001",
       "studentId": "s1",
       "studentName": "Rohit Sharma",
-      "title": "hackthonleave",
-      "reason": "i'm going to attend hackthon in iit kargpur",
-      "status": "Pending",
-      "submittedOn": "May 7, 2026",
-      "priority": "High"
-    },
-    {
-      "id": "p1",
-      "studentId": "s1",
-      "studentName": "Rohit Sharma",
-      "title": "CodeFest 2024 Hackathon",
+      "title": "Hackathon Participation at IIT Bombay",
+      "reason": "I have been selected to represent our college at the National Hackathon conducted by IIT Bombay on May 15-16. I kindly request permission to attend.",
       "status": "Approved",
-      "priority": "Low",
-      "submittedOn": "2024-10-10",
-      "reason": "Participating in national hackathon"
+      "submittedOn": "May 8, 2026",
+      "priority": "High",
+      "targetFaculty": ["f1"]
     },
     {
-      "id": "p2",
+      "id": "req_002",
       "studentId": "s1",
       "studentName": "Rohit Sharma",
-      "title": "Web Dev Workshop",
-      "status": "Rejected",
+      "title": "Medical Leave - 3 Days",
+      "reason": "I am suffering from viral fever and doctor has advised rest for 3 days. Attaching medical certificate for reference.",
+      "status": "Pending",
+      "submittedOn": "May 9, 2026",
+      "priority": "Medium",
+      "targetFaculty": ["f1", "f2"]
+    },
+    {
+      "id": "req_003",
+      "studentId": "s2",
+      "studentName": "Priya Patel",
+      "title": "Inter-College Cultural Fest",
+      "reason": "Our college has been invited to participate in Spectrum 2026 cultural fest at St. Xavier's College. I am part of the dance team representing our college.",
+      "status": "Pending",
+      "submittedOn": "May 10, 2026",
       "priority": "High",
-      "submittedOn": "2024-10-15",
-      "reason": "Event starting soon, need immediate approval"
+      "targetFaculty": ["f1"]
+    },
+    {
+      "id": "req_004",
+      "studentId": "s3",
+      "studentName": "Arjun Mehta",
+      "title": "Industrial Visit Permission",
+      "reason": "Requesting permission to attend the industrial visit to ISRO Space Centre organized by the ECE department on May 20, 2026.",
+      "status": "Rejected",
+      "submittedOn": "May 7, 2026",
+      "priority": "Low",
+      "targetFaculty": ["f2"]
+    },
+    {
+      "id": "req_005",
+      "studentId": "s1",
+      "studentName": "Rohit Sharma",
+      "title": "Sports Tournament - Cricket",
+      "reason": "I have been selected for the inter-college cricket tournament. The matches are scheduled from May 18-22. Requesting 5 days permission.",
+      "status": "Pending",
+      "submittedOn": "May 10, 2026",
+      "priority": "Medium",
+      "targetFaculty": ["f1", "f3"]
     }
   ],
   "announcements": [
     {
-      "id": "an_1778318321613",
-      "title": "kkk",
-      "content": "kkk",
-      "type": "Global",
-      "authorName": "System Admin",
-      "targetYears": [
-        "All Years"
-      ],
-      "targetBranches": [
-        "All Branches"
-      ],
+      "id": "an_001",
+      "title": "Mid-Semester Examinations Schedule Released",
+      "content": "The Mid-Semester examination schedule for all departments has been released. Exams will be held from May 20 to May 28, 2026. Students are advised to check the timetable on the notice board and prepare accordingly. No proxies will be allowed during exam days.",
+      "type": "Exam",
+      "author": "Dr. Vikram Singh",
+      "date": "May 10, 2026"
+    },
+    {
+      "id": "an_002",
+      "title": "CodeFest 2026 - Registration Now Open!",
+      "content": "The annual CodeFest 2026 is here! Register your team of 2-4 members and compete in categories like Web Development, AI/ML, and Competitive Coding. Last date to register: May 17, 2026. Contact the CSE department for more details.",
+      "type": "Event",
+      "author": "Prof. Anjali Verma",
       "date": "May 9, 2026"
     },
     {
-      "id": "an1",
-      "title": "CodeFest 2024 Registration Open",
-      "type": "Event",
-      "date": "2024-10-20",
+      "id": "an_003",
+      "title": "Library Timings Extended for Exam Season",
+      "content": "To support students during the upcoming examination period, the Central Library will now remain open until 10:00 PM on weekdays (Monday to Friday). Weekend timings remain 9 AM to 6 PM. Make the best use of this facility!",
+      "type": "Update",
       "author": "Dr. Vikram Singh",
-      "content": "Make sure to register for CodeFest 2024!"
+      "date": "May 8, 2026"
+    },
+    {
+      "id": "an_004",
+      "title": "Campus Placement Drive - TCS & Infosys",
+      "content": "TCS and Infosys will be conducting on-campus placement drives on May 25-26, 2026. Eligible students (CGPA 6.5 and above, no active backlogs) should register with the Training & Placement cell before May 18. Dress code: Formal.",
+      "type": "Placement",
+      "author": "Dr. Vikram Singh",
+      "date": "May 7, 2026"
     }
   ],
   "messages": [
     {
-      "id": "msg_1778231847651",
-      "text": "tell me about midexamination schedule",
+      "id": "msg_001",
+      "text": "Can someone help me understand the difference between TCP and UDP protocols? I always get confused during exams.",
       "authorId": "s1",
       "authorName": "Rohit Sharma",
       "authorRole": "Student",
       "type": "doubt",
+      "answers": 2,
+      "tags": ["Networking", "CSE"],
+      "timestamp": "2026-05-10T07:30:00.000Z"
+    },
+    {
+      "id": "msg_002",
+      "text": "What are the recommended resources for learning Data Structures and Algorithms for placements?",
+      "authorId": "s2",
+      "authorName": "Priya Patel",
+      "authorRole": "Student",
+      "type": "doubt",
+      "answers": 3,
+      "tags": ["DSA", "Placements"],
+      "timestamp": "2026-05-10T08:15:00.000Z"
+    },
+    {
+      "id": "msg_003",
+      "text": "Hey everyone! The CodeFest 2026 team registrations are closing soon. Who wants to form a team for the Web Dev category? I have experience in React and Next.js.",
+      "authorId": "s1",
+      "authorName": "Rohit Sharma",
+      "authorRole": "Student",
+      "type": "message",
       "answers": 0,
-      "tags": [
-        "General"
-      ],
-      "timestamp": "2026-05-08T09:17:27.651Z"
+      "tags": ["CodeFest", "Team"],
+      "timestamp": "2026-05-09T14:00:00.000Z"
+    },
+    {
+      "id": "msg_004",
+      "text": "Reminder: All 3rd year students must submit their project proposal by May 15. Please coordinate with your respective project guides.",
+      "authorId": "f1",
+      "authorName": "Prof. Anjali Verma",
+      "authorRole": "Faculty",
+      "type": "message",
+      "answers": 0,
+      "tags": ["Project", "Deadline"],
+      "timestamp": "2026-05-09T10:00:00.000Z"
+    },
+    {
+      "id": "msg_005",
+      "text": "Does anyone have notes for the Operating Systems unit on Memory Management? I missed a few classes.",
+      "authorId": "s3",
+      "authorName": "Arjun Mehta",
+      "authorRole": "Student",
+      "type": "doubt",
+      "answers": 1,
+      "tags": ["OS", "Notes"],
+      "timestamp": "2026-05-08T16:45:00.000Z"
     }
   ],
   "facultyRequests": [
     {
-      "id": "f1",
-      "name": "Dr. A. Kumar",
-      "type": "Lab Equipment Fund",
-      "dept": "ECE",
-      "status": "Pending",
+      "id": "fac_001",
+      "facultyId": "f1",
+      "facultyName": "Prof. Anjali Verma",
+      "title": "Request for Additional Lab Hours",
+      "reason": "The 3rd year CSE students require additional lab sessions to complete their DBMS practicals before the semester exam. Requesting 2 extra hours per week for the next 3 weeks.",
+      "status": "Approved",
       "date": "May 8, 2026",
+      "priority": "High"
+    },
+    {
+      "id": "fac_002",
+      "facultyId": "f2",
+      "facultyName": "Dr. Ramesh Kumar",
+      "title": "Seminar Hall Booking - Guest Lecture",
+      "reason": "Requesting the seminar hall on May 18, 2026 from 10 AM to 1 PM for a guest lecture by an industry expert from DRDO on Advanced Signal Processing.",
+      "status": "Pending",
+      "date": "May 9, 2026",
       "priority": "Medium"
     },
     {
-      "id": "f2",
-      "name": "Prof. Sharma",
-      "type": "Seminar Hall Booking",
-      "dept": "CSE",
-      "status": "Approved",
-      "date": "May 7, 2026",
-      "priority": "Low"
+      "id": "fac_003",
+      "facultyId": "f3",
+      "facultyName": "Prof. Sunita Rao",
+      "title": "Lab Equipment Procurement",
+      "reason": "The Mathematics lab requires 10 new scientific calculators and 2 projectors for effective teaching. Requesting approval for procurement from the budget allocated for this academic year.",
+      "status": "Pending",
+      "date": "May 10, 2026",
+      "priority": "Medium"
     }
   ]
 }
