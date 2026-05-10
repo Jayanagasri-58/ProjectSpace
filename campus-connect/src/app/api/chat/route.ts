@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ 
-      response: "Oops! I encountered an error while thinking. This usually happens if the API key is missing on Vercel or still activating. Please check your Vercel logs for details." 
+      response: "Oops! I encountered an error while thinking. This usually happens if the GEMINI_API_KEY is missing on Vercel, invalid, or still activating. \n\n**Action required:** Please go to Vercel Settings > Environment Variables and ensure `GEMINI_API_KEY` is set to your latest key from Google AI Studio." 
     }, { status: 500 });
   }
 }
