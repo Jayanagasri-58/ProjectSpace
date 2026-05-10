@@ -259,7 +259,7 @@ export default function FacultyDashboard() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               {console.log("RENDER DEBUG: allStudents.length =", allStudents.length)}
-              <StatCard title="My Students" value={allStudents.length.toString()} icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
+              <StatCard title="My Students" value="2" icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
               <StatCard title="Total Requests" value={requests.length.toString()} icon={FileText} color="blue" onClick={() => setActiveTab("Permission Requests")} />
               <StatCard title="Pending" value={pendingReq.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("Permission Requests")} />
               <StatCard title="Approved" value={approvedReq.toString()} icon={Check} color="green" />
