@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, requireRole } from '@/lib/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +23,11 @@ function saveLocalData(key: string, item: any) {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+// GET: Faculty and Admin can view faculty requests
+export async function GET(req: NextRequest) {
+  const { error } = requireRole(req, ['Faculty', 'Admin']);
+  if (error) return error;
+
   try {
     const connectDB = (await import('@/lib/mongodb')).default;
     const FacultyRequest = (await import('@/models/FacultyRequest')).default;
@@ -35,12 +40,18 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+// POST: Only Faculty can create faculty requests
+export async function POST(req: NextRequest) {
+  const { error, user } = requireRole(req, ['Faculty']);
+  if (error) return error;
+
   try {
-    const body = await request.json();
+    const body = await req.json();
     const newRequest = {
       id: "fac_req_" + Date.now(),
       ...body,
+      facultyId: user!.id,
+      facultyName: user!.name,
       status: "Pending",
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       priority: "Medium"

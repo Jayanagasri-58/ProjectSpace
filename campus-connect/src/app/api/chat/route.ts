@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { requireAuth } from '@/lib/authMiddleware';
 
 // Initialize Gemini API
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const { error } = requireAuth(req);
+  if (error) return error;
+
   try {
     // If no key is provided in env AND the fallback is the placeholder, show instruction
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {

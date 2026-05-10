@@ -71,22 +71,37 @@ export default function FacultyDashboard() {
   };
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/");
-      return;
-    }
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "Faculty") {
-      router.push("/");
-      return;
-    }
-    setUser(parsedUser);
-    fetchData(parsedUser.id);
+    const verifySession = async () => {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        localStorage.removeItem("user");
+        router.push("/");
+        return;
+      }
+      const data = await res.json();
+      if (data.user.role !== "Faculty") {
+        router.push("/");
+        return;
+      }
+      
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        fetchData(parsedUser.id);
+      } else {
+        setUser(data.user);
+        fetchData(data.user.id);
+      }
 
-    // Polling to keep data fresh (every 30 seconds)
-    const interval = setInterval(() => fetchData(parsedUser.id), 30000);
-    return () => clearInterval(interval);
+      // Polling to keep data fresh (every 30 seconds)
+      const interval = setInterval(() => {
+        const currentId = JSON.parse(localStorage.getItem("user") || "{}").id || data.user.id;
+        fetchData(currentId);
+      }, 30000);
+      return () => clearInterval(interval);
+    };
+    verifySession();
   }, [router]);
 
   const fetchData = async (facultyId: string) => {
@@ -891,7 +906,11 @@ export default function FacultyDashboard() {
             </button>
           </div>
           <button 
-            onClick={() => { localStorage.removeItem("user"); router.push("/"); }}
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              localStorage.removeItem("user");
+              router.push("/");
+            }}
             className="flex items-center gap-3 w-full px-4 py-3 mt-4 text-[#EF4444] hover:bg-red-50 rounded-xl transition-colors font-medium text-sm"
           >
             <LogOut className="w-5 h-5" />

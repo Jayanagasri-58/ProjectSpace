@@ -56,18 +56,30 @@ export default function StudentDashboard() {
   const [replies, setReplies] = useState<{ [key: string]: any[] }>({});
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/");
-      return;
-    }
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "Student") {
-      router.push("/");
-      return;
-    }
-    setUser(parsedUser);
-    fetchData(parsedUser.id);
+    const verifySession = async () => {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        localStorage.removeItem("user");
+        router.push("/");
+        return;
+      }
+      const data = await res.json();
+      if (data.user.role !== "Student") {
+        router.push("/");
+        return;
+      }
+      
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        setUser(JSON.parse(userData));
+        fetchData(data.user.id);
+      } else {
+        // Fallback if localStorage is empty but session exists
+        setUser(data.user);
+        fetchData(data.user.id);
+      }
+    };
+    verifySession();
   }, [router]);
 
   const fetchData = async (studentId: string) => {
@@ -1003,7 +1015,11 @@ export default function StudentDashboard() {
 
         <div className="p-4 mt-auto">
           <button 
-            onClick={() => { localStorage.removeItem("user"); router.push("/"); }}
+            onClick={async () => { 
+              await fetch('/api/auth/logout', { method: 'POST' });
+              localStorage.removeItem("user"); 
+              router.push("/"); 
+            }}
             className="flex items-center gap-3 w-full px-4 py-3 mt-4 text-[#EF4444] hover:bg-red-50 rounded-xl transition-colors font-medium text-sm"
           >
             <LogOut className="w-5 h-5" />

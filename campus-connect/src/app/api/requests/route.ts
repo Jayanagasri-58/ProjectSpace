@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, requireRole } from '@/lib/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,10 +23,19 @@ function saveLocalData(key: string, item: any) {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const studentId = searchParams.get('studentId');
+// GET: Logged-in users only. Students see their own, Faculty/Admin see all or filtered
+export async function GET(req: NextRequest) {
+  const { error, user } = requireAuth(req);
+  if (error) return error;
+
+  const { searchParams } = new URL(req.url);
+  let studentId = searchParams.get('studentId');
   const facultyId = searchParams.get('facultyId');
+
+  // Students can only see their own requests
+  if (user!.role === 'Student') {
+    studentId = user!.id;
+  }
 
   try {
     const connectDB = (await import('@/lib/mongodb')).default;
@@ -47,15 +57,20 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+// POST: Only Students can submit permission requests
+export async function POST(req: NextRequest) {
+  const { error, user } = requireRole(req, ['Student']);
+  if (error) return error;
+
   try {
-    const body = await request.json();
+    const body = await req.json();
     const newRequest = {
       id: "req_" + Date.now(),
       ...body,
+      studentId: user!.id,       // Always use the authenticated user's ID
+      studentName: user!.name,   // Always use the authenticated user's name
       status: "Pending",
       submittedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      priority: Math.random() > 0.5 ? "High" : "Medium"
     };
 
     try {

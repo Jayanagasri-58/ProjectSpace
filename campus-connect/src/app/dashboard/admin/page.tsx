@@ -47,22 +47,32 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/");
-      return;
-    }
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "Admin") {
-      router.push("/");
-      return;
-    }
-    setUser(parsedUser);
-    fetchData();
-    
-    // Polling to keep data fresh (every 30 seconds)
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const verifySession = async () => {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        localStorage.removeItem("user");
+        router.push("/");
+        return;
+      }
+      const data = await res.json();
+      if (data.user.role !== "Admin") {
+        router.push("/");
+        return;
+      }
+      
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        setUser(JSON.parse(userData));
+      } else {
+        setUser(data.user);
+      }
+      fetchData();
+
+      // Polling to keep data fresh (every 30 seconds)
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    };
+    verifySession();
   }, [router]);
 
   const fetchData = async () => {
@@ -671,7 +681,11 @@ export default function AdminDashboard() {
 
         <div className="p-4 mt-auto">
           <button 
-            onClick={() => { localStorage.removeItem("user"); router.push("/"); }}
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              localStorage.removeItem("user");
+              router.push("/");
+            }}
             className="flex items-center gap-3 w-full px-4 py-3 mt-4 text-[#EF4444] hover:bg-red-50 rounded-xl transition-colors font-medium text-sm"
           >
             <LogOut className="w-5 h-5" />

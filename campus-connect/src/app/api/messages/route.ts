@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +23,11 @@ function saveLocalData(key: string, item: any) {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+// GET: Any logged-in user can view messages/doubts
+export async function GET(req: NextRequest) {
+  const { error } = requireAuth(req);
+  if (error) return error;
+
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'message';
 
@@ -39,12 +44,19 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+// POST: Any logged-in user can post a message/doubt
+export async function POST(req: NextRequest) {
+  const { error, user } = requireAuth(req);
+  if (error) return error;
+
   try {
     const data = await req.json();
     const newMsg = {
       id: 'msg_' + Date.now(),
       ...data,
+      authorId: user!.id,       // Always use authenticated user's ID
+      authorName: user!.name,   // Always use authenticated user's name
+      authorRole: user!.role,   // Always use authenticated user's role
       timestamp: new Date().toISOString()
     };
 

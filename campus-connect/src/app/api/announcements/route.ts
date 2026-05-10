@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, requireRole } from '@/lib/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +23,11 @@ function saveLocalData(key: string, item: any) {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+// GET: All logged-in users can view announcements
+export async function GET(req: NextRequest) {
+  const { error } = requireAuth(req);
+  if (error) return error;
+
   try {
     const connectDB = (await import('@/lib/mongodb')).default;
     const Announcement = (await import('@/models/Announcement')).default;
@@ -35,12 +40,17 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+// POST: Only Admin can create announcements
+export async function POST(req: NextRequest) {
+  const { error, user } = requireRole(req, ['Admin']);
+  if (error) return error;
+
   try {
-    const body = await request.json();
+    const body = await req.json();
     const newAnnouncement = {
       id: "an_" + Date.now(),
       ...body,
+      authorName: user!.name,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
 
