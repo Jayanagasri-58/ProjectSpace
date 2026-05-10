@@ -126,7 +126,10 @@ export default function FacultyDashboard() {
     }
     if (userRes.ok) {
       const users = await userRes.json();
-      setAllStudents(users.filter((u: any) => u.role === 'Student'));
+      console.log("DEBUG: All Users from API:", users.length);
+      const students = users.filter((u: any) => u.role === 'Student');
+      console.log("DEBUG: Filtered Students:", students.length);
+      setAllStudents(students);
     }
   };
 
@@ -255,6 +258,7 @@ export default function FacultyDashboard() {
         return (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+              {console.log("RENDER DEBUG: allStudents.length =", allStudents.length)}
               <StatCard title="My Students" value={allStudents.length.toString()} icon={Users} color="purple" onClick={() => setActiveTab("My Students")} />
               <StatCard title="Total Requests" value={requests.length.toString()} icon={FileText} color="blue" onClick={() => setActiveTab("Permission Requests")} />
               <StatCard title="Pending" value={pendingReq.toString()} icon={Clock} color="orange" onClick={() => setActiveTab("Permission Requests")} />
