@@ -16,17 +16,23 @@ export async function POST(req: Request) {
 
     const { message } = await req.json();
     
-    // Get the generative model - using standard version
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     // Provide a system prompt context
     const prompt = `You are the CampusConnect AI Assistant. You are a helpful AI tutor for college students. 
     Help with: academic doubts, concepts, and campus questions.
     Student's question: ${message}`;
 
-    const result = await model.generateContent(prompt);
+    // We'll try with gemini-1.5-flash first, and if that specific model fails, we'll try gemini-pro
+    let result;
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      result = await model.generateContent(prompt);
+    } catch (e: any) {
+      console.log("Falling back to gemini-pro due to:", e.message);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      result = await model.generateContent(prompt);
+    }
     
-    if (!result.response) {
+    if (!result || !result.response) {
       throw new Error("No response from Gemini API");
     }
 
