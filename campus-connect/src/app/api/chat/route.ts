@@ -16,6 +16,26 @@ export async function POST(req: Request) {
 
     const { message } = await req.json();
     
+    // --- LOCAL SMART ENGINE (FALLBACK) ---
+    const localResponses: { [key: string]: string } = {
+      "hello": "Hello! I am your CampusConnect Assistant. How can I help you today?",
+      "hi": "Hi there! I'm here to help with your academic doubts or campus questions.",
+      "leave": "To apply for leave, click the '+ New Permission Request' button on your dashboard. You can draft a letter like: 'Dear HOD, I am requesting leave for [reason] on [date].'",
+      "letter": "I can help you draft a letter! Just mention the purpose (e.g., 'sick leave' or 'event permission') and I'll give you a template.",
+      "exam": "Exam schedules are usually posted in the 'Announcements' tab. Keep an eye on updates from the Administration.",
+      "library": "The central library is open from 9:00 AM to 8:00 PM on weekdays.",
+      "help": "You can ask me about: leave letters, campus timings, exam updates, or how to use this dashboard!"
+    };
+
+    const getLocalResponse = (msg: string) => {
+      const lower = msg.toLowerCase();
+      for (const key in localResponses) {
+        if (lower.includes(key)) return localResponses[key];
+      }
+      return "I'm currently in 'Offline Mode' because the API key is missing or invalid. I can still help with basic campus questions like 'leave letters', 'exams', or 'timings'!";
+    };
+    // --------------------------------------
+
     // Provide a system prompt context
     const prompt = `You are the CampusConnect AI Assistant. You are a helpful AI tutor for college students. 
     Help with: academic doubts, concepts, and campus questions.
@@ -24,21 +44,16 @@ export async function POST(req: Request) {
     // We'll try with models/gemini-1.5-flash first, then models/gemini-pro
     let result;
     try {
+      if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') throw new Error("Key missing");
       const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
       result = await model.generateContent(prompt);
+      
+      const responseText = result.response.text();
+      return NextResponse.json({ response: responseText });
     } catch (e: any) {
-      console.log("Falling back to gemini-pro due to:", e.message);
-      const model = genAI.getGenerativeModel({ model: "models/gemini-pro" });
-      result = await model.generateContent(prompt);
+      console.log("Using Local Smart Engine due to:", e.message);
+      return NextResponse.json({ response: getLocalResponse(message) });
     }
-    
-    if (!result || !result.response) {
-      throw new Error("No response from Gemini API");
-    }
-
-    const responseText = result.response.text();
-
-    return NextResponse.json({ response: responseText });
   } catch (error: any) {
     console.error('AI Assistant Error:', error.message || error);
     
