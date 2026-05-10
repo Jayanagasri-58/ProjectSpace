@@ -21,14 +21,14 @@ export async function POST(req: Request) {
     Help with: academic doubts, concepts, and campus questions.
     Student's question: ${message}`;
 
-    // We'll try with gemini-1.5-flash first, and if that specific model fails, we'll try gemini-pro
+    // We'll try with models/gemini-1.5-flash first, then models/gemini-pro
     let result;
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
       result = await model.generateContent(prompt);
     } catch (e: any) {
       console.log("Falling back to gemini-pro due to:", e.message);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = genAI.getGenerativeModel({ model: "models/gemini-pro" });
       result = await model.generateContent(prompt);
     }
     
