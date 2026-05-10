@@ -593,8 +593,8 @@ export default function AdminDashboard() {
                     <p className="text-lg font-bold text-[#1E2A5A]">{user.email}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Access Level</label>
-                    <p className="text-lg font-bold text-[#1E2A5A]">Root / SuperAdmin</p>
+                    <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Admin ID</label>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.id}</p>
                   </div>
                 </div>
               </div>

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/authMiddleware';
 import { getLocalData } from '@/lib/dataStore';
 
-// GET: Only Faculty and Admin can see the full user list
+// GET: Students, Faculty and Admin can see the user list (filtered in the frontend or here)
 export async function GET(req: NextRequest) {
-  const { error } = requireRole(req, ['Faculty', 'Admin']);
+  const { error } = requireRole(req, ['Student', 'Faculty', 'Admin']);
   if (error) return error;
 
   try {

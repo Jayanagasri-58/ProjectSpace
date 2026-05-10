@@ -764,7 +764,7 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <label className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider block mb-1">Employee ID</label>
-                    <p className="text-lg font-bold text-[#1E2A5A]">FAC_2023_081</p>
+                    <p className="text-lg font-bold text-[#1E2A5A]">{user.id || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
