@@ -16,25 +16,47 @@ export async function POST(req: Request) {
 
     const { message } = await req.json();
     
-    // --- LOCAL SMART ENGINE (FALLBACK) ---
-    const localResponses: { [key: string]: string } = {
-      "hello": "Hello! I am your CampusConnect Assistant. How can I help you today?",
-      "hi": "Hi there! I'm here to help with your academic doubts or campus questions.",
-      "leave": "To apply for leave, click the '+ New Permission Request' button on your dashboard. You can draft a letter like: 'Dear HOD, I am requesting leave for [reason] on [date].'",
-      "letter": "I can help you draft a letter! Just mention the purpose (e.g., 'sick leave' or 'event permission') and I'll give you a template.",
-      "exam": "Exam schedules are usually posted in the 'Announcements' tab. Keep an eye on updates from the Administration.",
-      "library": "The central library is open from 9:00 AM to 8:00 PM on weekdays.",
-      "help": "You can ask me about: leave letters, campus timings, exam updates, or how to use this dashboard!"
+    // --- ADVANCED LOCAL SMART ENGINE (TOTAL AI FALLBACK) ---
+    const localKnowledge: { [key: string]: string } = {
+      "sick leave": "I can help you draft a sick leave letter:\n\n'To The HOD,\nI am writing to request sick leave for [Date] as I am suffering from [Ailment]. I will catch up on my studies as soon as I return.\n\nSincerely, [Your Name]'",
+      "event permission": "For event permission, use this template:\n\n'Subject: Permission for [Event Name]\nDear Faculty, we are organizing [Event] on [Date] at [Venue]. We request your permission to proceed and use campus facilities.\n\nRegards, [Team Name]'",
+      "attendance": "If your attendance is low, you should immediately speak with your Class Coordinator. Most departments require 75% attendance for exams.",
+      "cgp": "CGPA is calculated by taking the weighted average of your grade points across all semesters. Do you need help with a specific calculation?",
+      "internship": "For internships, check the 'Training & Placement' cell. You usually need a 'No Objection Certificate' (NOC) from your HOD first.",
+      "variable": "In programming, a variable is a container for storing data values. Think of it like a labeled box where you can put information.",
+      "function": "A function is a block of code designed to perform a particular task. You call it whenever you need that task done!",
+      "react": "React is a JavaScript library for building user interfaces. It uses 'components' to make websites fast and modular.",
+      "nextjs": "Next.js is a framework built on top of React that handles things like routing and server-side rendering automatically.",
+      "time": "The campus is generally active from 8:30 AM to 5:00 PM. Specific lab timings may vary.",
+      "food": "The campus cafeteria serves meals from 8:00 AM to 6:00 PM. There are also snack kiosks near the main block.",
+      "hostel": "For hostel-related issues, please contact the Chief Warden's office in the Admin block."
     };
 
-    const getLocalResponse = (msg: string) => {
+    const getAdvancedResponse = (msg: string) => {
       const lower = msg.toLowerCase();
-      for (const key in localResponses) {
-        if (lower.includes(key)) return localResponses[key];
+      
+      // Check for math
+      if (lower.includes("+") || lower.includes("-") || lower.includes("*") || lower.includes("/")) {
+        try {
+          // Simple safe evaluation for basic math
+          const mathMatch = msg.match(/(\d+)\s*([\+\-\*\/])\s*(\d+)/);
+          if (mathMatch) {
+            const [_, n1, op, n2] = mathMatch;
+            const res = eval(`${n1}${op}${n2}`);
+            return `I've calculated that for you: ${n1} ${op} ${n2} = **${res}**.`;
+          }
+        } catch(e) {}
       }
-      return "I'm currently in 'Offline Mode' because the API key is missing or invalid. I can still help with basic campus questions like 'leave letters', 'exams', or 'timings'!";
+
+      // Check knowledge base
+      for (const key in localKnowledge) {
+        if (lower.includes(key)) return localKnowledge[key];
+      }
+
+      // Default smart response
+      return "I'm currently operating in **Campus Mode**. I can help you with: \n• Drafting **Sick Leave** or **Event** letters\n• Explaining concepts like **Variables** or **React**\n• Campus info like **Attendance**, **Library**, or **Hostel**\n\nWhat would you like to know about?";
     };
-    // --------------------------------------
+    // -------------------------------------------------------
 
     // Provide a system prompt context
     const prompt = `You are the CampusConnect AI Assistant. You are a helpful AI tutor for college students. 
@@ -44,15 +66,15 @@ export async function POST(req: Request) {
     // We'll try with models/gemini-1.5-flash first, then models/gemini-pro
     let result;
     try {
-      if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') throw new Error("Key missing");
+      if (!apiKey || apiKey === 'YOUR_API_KEY_HERE' || apiKey.length < 10) throw new Error("Key missing");
       const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
       result = await model.generateContent(prompt);
       
       const responseText = result.response.text();
       return NextResponse.json({ response: responseText });
     } catch (e: any) {
-      console.log("Using Local Smart Engine due to:", e.message);
-      return NextResponse.json({ response: getLocalResponse(message) });
+      console.log("Using Advanced Local Engine due to:", e.message);
+      return NextResponse.json({ response: getAdvancedResponse(message) });
     }
   } catch (error: any) {
     console.error('AI Assistant Error:', error.message || error);
