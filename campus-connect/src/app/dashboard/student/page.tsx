@@ -46,8 +46,14 @@ export default function StudentDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newReqTitle, setNewReqTitle] = useState("");
   const [newReqReason, setNewReqReason] = useState("");
+  const [newReqDueDate, setNewReqDueDate] = useState("");
   const [newReqFile, setNewReqFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Doubt reply states
+  const [expandedDoubt, setExpandedDoubt] = useState<string | null>(null);
+  const [replyInputs, setReplyInputs] = useState<{ [key: string]: string }>({});
+  const [replies, setReplies] = useState<{ [key: string]: any[] }>({});
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -188,6 +194,15 @@ export default function StudentDashboard() {
     }
     setIsSubmitting(true);
     try {
+      // AI Priority: calculate based on due date
+      let aiPriority = "Medium";
+      if (newReqDueDate) {
+        const daysUntilDue = Math.ceil((new Date(newReqDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysUntilDue <= 2) aiPriority = "High";
+        else if (daysUntilDue <= 5) aiPriority = "Medium";
+        else aiPriority = "Low";
+      }
+
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,9 +211,11 @@ export default function StudentDashboard() {
           studentName: user.name,
           title: newReqTitle,
           reason: newReqReason,
+          dueDate: newReqDueDate,
           targetFaculty: selectedFaculty,
           hasAttachment: !!newReqFile,
           status: 'Pending',
+          priority: aiPriority,
           submittedOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         })
       });
@@ -210,6 +227,7 @@ export default function StudentDashboard() {
         setActiveTab("My Permissions");
         setNewReqTitle("");
         setNewReqReason("");
+        setNewReqDueDate("");
         setNewReqFile(null);
         setSelectedFaculty([]);
       } else {
@@ -222,6 +240,20 @@ export default function StudentDashboard() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReplySubmit = async (doubtId: string) => {
+    const replyText = replyInputs[doubtId]?.trim();
+    if (!replyText) return;
+    const newReply = {
+      id: 'reply_' + Date.now(),
+      authorName: user.name,
+      authorRole: user.role,
+      text: replyText,
+      timestamp: new Date().toISOString()
+    };
+    setReplies(prev => ({ ...prev, [doubtId]: [...(prev[doubtId] || []), newReply] }));
+    setReplyInputs(prev => ({ ...prev, [doubtId]: '' }));
   };
 
   if (!user) return null;
@@ -598,40 +630,76 @@ export default function StudentDashboard() {
 
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
               {doubts.map((item: any) => (
-                <div key={item.id} className="p-6 border border-gray-100 rounded-3xl hover:shadow-lg hover:border-[#5B8CFF]/30 transition-all bg-white relative group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#F7F8FF] flex items-center justify-center text-[#5B8CFF] font-bold border border-[#EAF4FF]">
-                        {item.authorName?.[0]}
+                <div key={item.id} className="border border-gray-100 rounded-3xl bg-white overflow-hidden transition-all hover:shadow-lg hover:border-[#5B8CFF]/30">
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#F7F8FF] flex items-center justify-center text-[#5B8CFF] font-bold border border-[#EAF4FF]">
+                          {item.authorName?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#1E2A5A]">{item.authorName}</p>
+                          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{item.authorRole} • {new Date(item.timestamp || Date.now()).toLocaleDateString()}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-[#1E2A5A]">{item.authorName}</p>
-                        <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{item.authorRole} • {new Date(item.timestamp || Date.now()).toLocaleDateString()}</p>
+                      <div className="flex gap-2">
+                        {item.tags?.map((t: string) => (
+                          <span key={t} className="px-2 py-1 bg-[#EAF4FF] text-[#5B8CFF] text-[9px] font-black rounded-lg uppercase tracking-tighter">{t}</span>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {item.tags?.map((t: string) => (
-                        <span key={t} className="px-2 py-1 bg-[#EAF4FF] text-[#5B8CFF] text-[9px] font-black rounded-lg uppercase tracking-tighter">{t}</span>
-                      ))}
+                    <h3 className="font-bold text-[#1E2A5A] text-lg mb-3 leading-tight">{item.text}</h3>
+                    <div className="flex items-center gap-6 pt-4 border-t border-gray-50">
+                      <button className="flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors group/btn">
+                        <div className="p-2 rounded-full group-hover/btn:bg-red-50 transition-colors"><Heart className="w-4 h-4" /></div>
+                        <span className="text-xs font-bold">Like</span>
+                      </button>
+                      <button
+                        onClick={() => setExpandedDoubt(expandedDoubt === item.id ? null : item.id)}
+                        className="flex items-center gap-2 text-gray-400 hover:text-[#5B8CFF] transition-colors group/btn"
+                      >
+                        <div className="p-2 rounded-full group-hover/btn:bg-blue-50 transition-colors"><MessageCircle className="w-4 h-4" /></div>
+                        <span className="text-xs font-bold">{(item.answers || 0) + (replies[item.id]?.length || 0)} Answers</span>
+                      </button>
                     </div>
                   </div>
-                  
-                  <h3 className="font-bold text-[#1E2A5A] text-lg mb-3 leading-tight">{item.text}</h3>
-                  
-                  <div className="flex items-center gap-6 pt-4 border-t border-gray-50">
-                    <button className="flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-red-50 transition-colors">
-                        <Heart className="w-4 h-4" />
+
+                  {/* Expandable Comment/Reply Section */}
+                  {expandedDoubt === item.id && (
+                    <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4">
+                      <h4 className="text-xs font-bold text-[#5B8CFF] uppercase tracking-wider mb-3">Replies</h4>
+                      <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+                        {(replies[item.id] || []).length === 0 && (
+                          <p className="text-xs text-gray-400 italic">No replies yet. Be the first to answer!</p>
+                        )}
+                        {(replies[item.id] || []).map((r: any) => (
+                          <div key={r.id} className="flex gap-3">
+                            <div className="w-7 h-7 rounded-full bg-[#EDE9FE] flex items-center justify-center text-[#7C6CFF] text-xs font-bold shrink-0">{r.authorName?.[0]}</div>
+                            <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-gray-100">
+                              <p className="text-xs font-bold text-[#1E2A5A]">{r.authorName} <span className="font-normal text-gray-400">({r.authorRole})</span></p>
+                              <p className="text-sm text-[#1E2A5A] mt-0.5">{r.text}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <span className="text-xs font-bold">Like</span>
-                    </button>
-                    <button className="flex items-center gap-2 text-gray-400 hover:text-[#5B8CFF] transition-colors group/btn">
-                      <div className="p-2 rounded-full group-hover/btn:bg-blue-50 transition-colors">
-                        <MessageCircle className="w-4 h-4" />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Write a reply..."
+                          value={replyInputs[item.id] || ''}
+                          onChange={e => setReplyInputs(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && handleReplySubmit(item.id)}
+                          className="flex-1 px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:border-[#5B8CFF] outline-none"
+                        />
+                        <button
+                          onClick={() => handleReplySubmit(item.id)}
+                          className="px-4 py-2 bg-gradient-to-r from-[#5B8CFF] to-[#7C6CFF] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1"
+                        >
+                          <Send className="w-3 h-3" /> Reply
+                        </button>
                       </div>
-                      <span className="text-xs font-bold">{item.answers || 0} Answers</span>
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {doubts.length === 0 && (
@@ -795,6 +863,24 @@ export default function StudentDashboard() {
                   placeholder="Explain why you need this permission..." rows={3}
                   className="w-full mt-1.5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none resize-none"
                 ></textarea>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-[#1E2A5A] flex items-center gap-2">
+                  Due Date <span className="text-[10px] text-orange-500 font-bold bg-orange-50 px-2 py-0.5 rounded-md">AI uses this for priority</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={newReqDueDate}
+                  onChange={e => setNewReqDueDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full mt-1.5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] focus:bg-white transition-colors outline-none"
+                />
+                {newReqDueDate && (() => {
+                  const days = Math.ceil((new Date(newReqDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  const label = days <= 2 ? { text: '🔴 High Priority — Very Urgent!', cls: 'text-red-600 bg-red-50' } : days <= 5 ? { text: '🟡 Medium Priority — Moderate Urgency', cls: 'text-orange-600 bg-orange-50' } : { text: '🟢 Low Priority — Plenty of Time', cls: 'text-green-600 bg-green-50' };
+                  return <p className={`mt-1.5 text-xs font-bold px-3 py-1.5 rounded-lg ${label.cls}`}>{label.text} ({days} day{days !== 1 ? 's' : ''} left)</p>;
+                })()}
               </div>
 
               {/* Faculty Selection */}
