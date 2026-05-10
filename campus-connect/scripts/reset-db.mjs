@@ -136,6 +136,51 @@ async function seed() {
         details: "HOD - ECE"
       },
       {
+        id: "fac_3",
+        name: "Dr. Sunita Reddy",
+        email: "sunita@college.edu",
+        password: "password123",
+        role: "Faculty",
+        avatar: "https://i.pravatar.cc/150?u=sunita",
+        details: "Professor - Mathematics"
+      },
+      {
+        id: "fac_4",
+        name: "Prof. Arjun Nair",
+        email: "arjun@college.edu",
+        password: "password123",
+        role: "Faculty",
+        avatar: "https://i.pravatar.cc/150?u=arjun",
+        details: "Assistant Professor - Physics"
+      },
+      {
+        id: "fac_5",
+        name: "Dr. Meena Iyer",
+        email: "meena@college.edu",
+        password: "password123",
+        role: "Faculty",
+        avatar: "https://i.pravatar.cc/150?u=meena",
+        details: "HOD - English"
+      },
+      {
+        id: "fac_6",
+        name: "Prof. Karthik Rao",
+        email: "karthik@college.edu",
+        password: "password123",
+        role: "Faculty",
+        avatar: "https://i.pravatar.cc/150?u=karthik",
+        details: "Associate Professor - IT"
+      },
+      {
+        id: "fac_7",
+        name: "Dr. Lakshmi Devi",
+        email: "lakshmi@college.edu",
+        password: "password123",
+        role: "Faculty",
+        avatar: "https://i.pravatar.cc/150?u=lakshmi",
+        details: "Professor - Mechanical Engineering"
+      },
+      {
         id: "stud_1",
         name: "Rohit Sharma",
         email: "student@college.edu",

@@ -23,7 +23,11 @@ export default function StudentDashboard() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   
   // Faculty Selection State
-  const [facultyList, setFacultyList] = useState<any[]>([]);
+  const [facultyList, setFacultyList] = useState<any[]>([
+    { id: "f1", name: "Prof. Anjali Verma", details: "Proctor - CSE (3rd Year)", avatar: "https://i.pravatar.cc/150?u=anjali" },
+    { id: "f2", name: "Dr. Ramesh Kumar", details: "HOD - ECE", avatar: "https://i.pravatar.cc/150?u=ramesh" },
+    { id: "f3", name: "Dr. Sunita Reddy", details: "Professor - Mathematics", avatar: "https://i.pravatar.cc/150?u=sunita" }
+  ]);
   const [selectedFaculty, setSelectedFaculty] = useState<string[]>([]);
   const [facultySearch, setFacultySearch] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -96,7 +100,12 @@ export default function StudentDashboard() {
     if (doubtRes.ok) setDoubts(await doubtRes.json());
     if (userRes.ok) {
       const users = await userRes.json();
-      setFacultyList(users.filter((u: any) => u.role === 'Faculty'));
+      console.log("DEBUG: Fetched users count:", users.length);
+      const faculty = users.filter((u: any) => u.role?.toLowerCase() === 'faculty');
+      console.log("DEBUG: Filtered faculty count:", faculty.length);
+      setFacultyList(faculty);
+    } else {
+      console.error("Failed to fetch users:", userRes.status);
     }
   };
 

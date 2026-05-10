@@ -37,6 +37,42 @@
       "details": "Assistant Professor - Mathematics"
     },
     {
+      "id": "f4",
+      "name": "Prof. Arjun Nair",
+      "email": "arjunnair@college.edu",
+      "password": "password123",
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=arjunnair",
+      "details": "Assistant Professor - Physics"
+    },
+    {
+      "id": "f5",
+      "name": "Dr. Meena Iyer",
+      "email": "meena@college.edu",
+      "password": "password123",
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=meena",
+      "details": "HOD - English"
+    },
+    {
+      "id": "f6",
+      "name": "Prof. Karthik Rao",
+      "email": "karthik@college.edu",
+      "password": "password123",
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=karthik",
+      "details": "Associate Professor - IT"
+    },
+    {
+      "id": "f7",
+      "name": "Dr. Lakshmi Devi",
+      "email": "lakshmi@college.edu",
+      "password": "password123",
+      "role": "Faculty",
+      "avatar": "https://i.pravatar.cc/150?u=lakshmi",
+      "details": "Professor - Mechanical Engineering"
+    },
+    {
       "id": "s1",
       "name": "Rohit Sharma",
       "email": "student@college.edu",
