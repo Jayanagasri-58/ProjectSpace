@@ -46,7 +46,6 @@ export default function FacultyDashboard() {
   const [newAnnType, setNewAnnType] = useState("Important");
   const [targetYears, setTargetYears] = useState<string[]>(["All Years"]);
   const [targetBranches, setTargetBranches] = useState<string[]>(["All Branches"]);
-  const [newAnnFile, setNewAnnFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Faculty Request State
@@ -228,7 +227,6 @@ export default function FacultyDashboard() {
       setAnnouncements([newAnn, ...announcements]);
       setNewAnnTitle("");
       setNewAnnContent("");
-      setNewAnnFile(null);
       setTargetYears(["All Years"]);
       setTargetBranches(["All Branches"]);
       setActiveTab("Announcements");
@@ -570,29 +568,6 @@ export default function FacultyDashboard() {
                   placeholder="Type your announcement details here..." rows={4}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#5B8CFF] outline-none resize-none"
                 ></textarea>
-              </div>
-
-              {/* Media Upload */}
-              <div>
-                <label className="text-sm font-semibold text-[#1E2A5A] block mb-2">Attachments / Media (Optional)</label>
-                <div className="flex items-center justify-center w-full">
-                  <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${newAnnFile ? 'border-[#5B8CFF] bg-[#EAF4FF]' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}>
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {newAnnFile ? (
-                        <>
-                          <FileText className="w-8 h-8 mb-2 text-[#5B8CFF]" />
-                          <p className="text-sm font-bold text-[#1E2A5A]">{newAnnFile.name}</p>
-                        </>
-                      ) : (
-                        <>
-                          <UploadCloud className="w-8 h-8 mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-500 font-medium">Click to upload image or document</p>
-                        </>
-                      )}
-                    </div>
-                    <input type="file" className="hidden" onChange={(e) => { if(e.target.files?.[0]) setNewAnnFile(e.target.files[0]) }} />
-                  </label>
-                </div>
               </div>
               <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setActiveTab("Announcements")} className="px-6 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>

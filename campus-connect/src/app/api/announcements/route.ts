@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireRole } from '@/lib/authMiddleware';
-import fs from 'fs';
-import path from 'path';
-
-function getLocalData(key: string) {
-  try {
-    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-    return data[key] || [];
-  } catch { return []; }
-}
-
-function saveLocalData(key: string, item: any) {
-  try {
-    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-    if (!data[key]) data[key] = [];
-    data[key].unshift(item);
-    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-  } catch {}
-}
+import { getLocalData, saveLocalData } from '@/lib/dataStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +28,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    
+    // Basic validation
+    if (!body.title || !body.content) {
+      return NextResponse.json({ error: 'Title and Content are required' }, { status: 400 });
+    }
+
     const newAnnouncement = {
       id: "an_" + Date.now(),
       ...body,
@@ -59,13 +46,14 @@ export async function POST(req: NextRequest) {
       const Announcement = (await import('@/models/Announcement')).default;
       await connectDB();
       const saved = await Announcement.create(newAnnouncement);
-      return NextResponse.json(saved);
+      return NextResponse.json(saved, { status: 201 });
     } catch (dbErr: any) {
       console.warn('MongoDB unavailable, saving locally:', dbErr.message);
-      saveLocalData('announcements', newAnnouncement);
-      return NextResponse.json(newAnnouncement);
+      const savedLocal = saveLocalData('announcements', newAnnouncement);
+      return NextResponse.json(savedLocal, { status: 201 });
     }
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 });
+  } catch (err: any) {
+    console.error('Announcements POST Error:', err.message || err);
+    return NextResponse.json({ error: 'Failed to create announcement', details: err.message }, { status: 500 });
   }
 }

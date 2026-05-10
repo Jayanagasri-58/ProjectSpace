@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/authMiddleware';
-import fs from 'fs';
-import path from 'path';
+import { updateLocalData } from '@/lib/dataStore';
 
 // PATCH: Only Faculty or Admin can approve/reject requests
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,8 +13,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Validate allowed status values
     const allowedStatuses = ['Approved', 'Rejected', 'Pending'];
-    if (!allowedStatuses.includes(body.status)) {
-      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+    if (!body.status || !allowedStatuses.includes(body.status)) {
+      return NextResponse.json({ error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` }, { status: 400 });
     }
 
     try {
@@ -28,21 +27,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         { new: true }
       );
       if (updated) return NextResponse.json(updated);
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Request not found in Database' }, { status: 404 });
     } catch (dbErr: any) {
-      // Fallback: update in local JSON
       console.warn('MongoDB unavailable, updating locally:', dbErr.message);
-      const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-      const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-      const idx = data.requests?.findIndex((r: any) => r.id === id);
-      if (idx !== undefined && idx >= 0) {
-        data.requests[idx].status = body.status;
-        fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-        return NextResponse.json(data.requests[idx]);
-      }
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+      const updatedLocal = updateLocalData('requests', id, { status: body.status });
+      if (updatedLocal) return NextResponse.json(updatedLocal);
+      return NextResponse.json({ error: 'Request not found locally' }, { status: 404 });
     }
-  } catch (err) {
+  } catch (err: any) {
+    console.error('Request PATCH Error:', err.message || err);
     return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
   }
 }

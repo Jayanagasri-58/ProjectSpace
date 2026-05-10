@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requireRole } from '@/lib/authMiddleware';
-import fs from 'fs';
-import path from 'path';
-
-function getLocalData(key: string) {
-  try {
-    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-    return data[key] || [];
-  } catch { return []; }
-}
+import { requireRole } from '@/lib/authMiddleware';
+import { getLocalData } from '@/lib/dataStore';
 
 // GET: Only Faculty and Admin can see the full user list
 export async function GET(req: NextRequest) {
@@ -17,18 +8,24 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   try {
-    const connectDB = (await import('@/lib/mongodb')).default;
-    const User = (await import('@/models/User')).default;
-    await connectDB();
-    // Never return password field
-    const users = await User.find({}, { password: 0 });
-    return NextResponse.json(users);
+    try {
+      const connectDB = (await import('@/lib/mongodb')).default;
+      const User = (await import('@/models/User')).default;
+      await connectDB();
+      // Never return password field
+      const users = await User.find({}, { password: 0 });
+      return NextResponse.json(users);
+    } catch (dbErr: any) {
+      console.warn('MongoDB unavailable, using local data:', dbErr.message);
+      // Strip passwords from local data
+      const users = getLocalData('users').map((u: any) => {
+        const { password, ...rest } = u;
+        return rest;
+      });
+      return NextResponse.json(users);
+    }
   } catch (err: any) {
-    console.warn('MongoDB unavailable, using local data:', err.message);
-    // Strip passwords from local data too
-    return NextResponse.json(getLocalData('users').map((u: any) => {
-      const { password, ...rest } = u;
-      return rest;
-    }));
+    console.error('Users GET Error:', err.message || err);
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }

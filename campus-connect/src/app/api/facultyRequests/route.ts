@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requireRole } from '@/lib/authMiddleware';
-import fs from 'fs';
-import path from 'path';
-
-function getLocalData(key: string) {
-  try {
-    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-    return data[key] || [];
-  } catch { return []; }
-}
-
-function saveLocalData(key: string, item: any) {
-  try {
-    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-    if (!data[key]) data[key] = [];
-    data[key].unshift(item);
-    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-  } catch {}
-}
+import { requireRole } from '@/lib/authMiddleware';
+import { getLocalData, saveLocalData } from '@/lib/dataStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +10,19 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   try {
-    const connectDB = (await import('@/lib/mongodb')).default;
-    const FacultyRequest = (await import('@/models/FacultyRequest')).default;
-    await connectDB();
-    const requests = await FacultyRequest.find().sort({ createdAt: -1 });
-    return NextResponse.json(requests);
+    try {
+      const connectDB = (await import('@/lib/mongodb')).default;
+      const FacultyRequest = (await import('@/models/FacultyRequest')).default;
+      await connectDB();
+      const requests = await FacultyRequest.find().sort({ createdAt: -1 });
+      return NextResponse.json(requests);
+    } catch (dbErr: any) {
+      console.warn('MongoDB unavailable, using local data:', dbErr.message);
+      return NextResponse.json(getLocalData('facultyRequests'));
+    }
   } catch (err: any) {
-    console.warn('MongoDB unavailable, using local data:', err.message);
-    return NextResponse.json(getLocalData('facultyRequests'));
+    console.error('Faculty Requests GET Error:', err.message || err);
+    return NextResponse.json({ error: 'Failed to fetch faculty requests' }, { status: 500 });
   }
 }
 
@@ -47,6 +33,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    
+    if (!body.type || !body.reason) {
+      return NextResponse.json({ error: 'Request type and reason are required' }, { status: 400 });
+    }
+
     const newRequest = {
       id: "fac_req_" + Date.now(),
       ...body,
@@ -54,7 +45,7 @@ export async function POST(req: NextRequest) {
       facultyName: user!.name,
       status: "Pending",
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      priority: "Medium"
+      priority: body.priority || "Medium"
     };
 
     try {
@@ -62,13 +53,14 @@ export async function POST(req: NextRequest) {
       const FacultyRequest = (await import('@/models/FacultyRequest')).default;
       await connectDB();
       const saved = await FacultyRequest.create(newRequest);
-      return NextResponse.json(saved);
+      return NextResponse.json(saved, { status: 201 });
     } catch (dbErr: any) {
       console.warn('MongoDB unavailable, saving locally:', dbErr.message);
-      saveLocalData('facultyRequests', newRequest);
-      return NextResponse.json(newRequest);
+      const savedLocal = saveLocalData('facultyRequests', newRequest);
+      return NextResponse.json(savedLocal, { status: 201 });
     }
-  } catch (err) {
+  } catch (err: any) {
+    console.error('Faculty Requests POST Error:', err.message || err);
     return NextResponse.json({ error: 'Failed to create faculty request' }, { status: 500 });
   }
 }

@@ -149,10 +149,6 @@ export default function StudentDashboard() {
       setIsAiLoading(false);
     }
   };
-
-
-
-
   const handleDownloadPDF = (req: any) => {
     const doc = new jsPDF();
     
@@ -176,7 +172,7 @@ export default function StudentDashboard() {
     doc.text("Student Details:", 20, 90);
     doc.setFont("helvetica", "normal");
     doc.text(`Name: ${user.name}`, 30, 100);
-    doc.text(`Student ID: 2023CS0192`, 30, 110);
+    doc.text(`ID: ${user.id || 'N/A'}`, 30, 110);
     
     doc.setFont("helvetica", "bold");
     doc.text("Permission Details:", 20, 130);
