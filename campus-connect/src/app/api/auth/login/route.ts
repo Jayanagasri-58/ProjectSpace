@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getUsers } from '@/lib/db';
+import fs from 'fs';
+import path from 'path';
+
+function getLocalUsers() {
+  try {
+    const dataPath = path.join(process.cwd(), 'src', 'lib', 'data.json');
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    return data.users || [];
+  } catch {
+    return [];
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -10,17 +21,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const allUsers = getUsers();
-    const user = allUsers.find(
-      (u: any) => u.email === email && u.password === password && u.role === role
-    );
+    let user = null;
+
+    // Try MongoDB first
+    try {
+      const connectDB = (await import('@/lib/mongodb')).default;
+      const User = (await import('@/models/User')).default;
+      await connectDB();
+      user = await User.findOne({ email, password, role });
+    } catch (dbErr: any) {
+      console.warn('MongoDB unavailable, falling back to local data:', dbErr.message);
+      // Fallback to local JSON
+      const users = getLocalUsers();
+      user = users.find((u: any) => u.email === email && u.password === password && u.role === role);
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials or role' }, { status: 401 });
     }
 
-    // In a real app, you would set a secure HttpOnly cookie here with a JWT token.
-    // For this mockup, we'll just return the user data to the client.
     return NextResponse.json({
       message: 'Login successful',
       user: {
@@ -32,7 +51,9 @@ export async function POST(request: Request) {
         details: user.details
       }
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Login Error:', error.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

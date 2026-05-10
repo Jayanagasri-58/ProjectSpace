@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { updateRequestStatus } from '@/lib/db';
+import connectDB from '@/lib/mongodb';
+import PermissionRequest from '@/models/PermissionRequest';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB();
     const { id } = await params;
     const body = await request.json();
-    const updated = updateRequestStatus(id, body.status);
+    
+    const updated = await PermissionRequest.findOneAndUpdate(
+      { id: id },
+      { status: body.status },
+      { new: true }
+    );
     
     if (updated) {
       return NextResponse.json(updated);
