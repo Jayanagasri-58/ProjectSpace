@@ -1,5 +1,7 @@
 "use client";
 
+// Fresh build trigger - Syncing with live database
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
